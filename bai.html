@@ -77,7 +77,6 @@ p{margin:0}
 .seat b{font-family:var(--f-display);font-size:15px}
 .seat .nm{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .stake{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.stake select{padding:7px 10px;border:2.5px solid var(--ink);border-radius:10px;background:var(--bg);font-weight:700}
 .stake input{width:140px;padding:7px 10px;border:2.5px solid var(--ink);border-radius:10px;background:var(--bg);font-weight:700;font-variant-numeric:tabular-nums}
 .rulesList{margin:0;padding-left:18px;color:var(--muted);font-size:14px;display:flex;flex-direction:column;gap:4px}
 .rulesList b{color:var(--ink)}
@@ -195,7 +194,6 @@ body.cute .hand .c.sel{box-shadow:0 0 0 3px #FF5C8A,0 2px 0 #F7A8C8}
         <p class="muted" id="specs"></p>
         <div class="stake"><label for="stakeIn"><b id="stakeLb">Tiền mỗi lá</b></label><input id="stakeIn" type="number" min="0" step="500" inputmode="numeric"><span class="muted" id="stakeNote"></span></div>
         <div class="stake" id="quick"></div>
-        <div class="stake" id="uRow" hidden><label for="uSel"><b>Ù ăn mỗi người</b></label><select id="uSel"><option value="1">1 ván</option><option value="2">2 ván</option><option value="3">3 ván</option><option value="4">4 ván</option><option value="5">5 ván</option></select></div>
         <ul class="rulesList" id="rules"></ul>
         <div class="acts"><button class="btn" id="startBtn">Chia bài</button><button class="btn sm ghost" id="resetBtn">Đặt lại bảng xếp hạng</button><span class="muted" id="startHint"></span></div>
       </div>
@@ -326,7 +324,7 @@ function seatName(s){var x=S_.seats[s]; return x?x.name:"Ghế "+(s+1)}
 /* ----- lobby ----- */
 var RULES={
   sam:["Thứ tự: 3 < 4 < … < K < A < 2 (heo), không xét chất.","Đánh đơn, đôi, sám (3 lá), tứ quý hoặc sảnh từ 3 lá (sảnh không có 2). Chặn bằng bộ cùng kiểu, cùng số lá, lớn hơn.","Tứ quý chặt được heo: người bị chặt trả <b>10 lá</b> cho người chặt.","Thua trả <b>số lá còn lại</b> × tiền/lá. Còn heo trên tay: mỗi con tính thêm <b>5 lá</b> (thối heo).","Chưa đánh được lá nào (cóng): trả <b>20 lá</b>.","Báo Sâm trong 10 giây đầu: đánh hết mà không ai chặn được thì mỗi người trả <b>20 lá</b>; bị chặn thì đền mỗi người <b>20 lá</b>.","Mỗi lượt 25 giây. Hết giờ: đang cầm cái thì tự đánh lá nhỏ nhất, không thì tự bỏ lượt."],
-  phom:["Chia 9 lá, người đánh đầu 10 lá. Mỗi lượt: ăn lá vừa đánh của người trước (nếu tạo được phỏm) hoặc bốc, rồi đánh 1 lá.","Phỏm: 3–4 lá cùng số, hoặc từ 3 lá liên tiếp cùng chất (A thấp, không vòng K–A).","Lá đã ăn phải nằm trong phỏm, mỗi phỏm chỉ chứa 1 lá ăn; không được đánh lá đã ăn.","Mỗi người đánh đủ 4 lá thì hạ phỏm và tự gửi bài vào phỏm người khác. Điểm rác thấp nhất là Nhất.","Trả cho Nhất: Nhì <b>1</b> · Ba <b>2</b> · Bét <b>3</b> · Móm (không có phỏm) <b>4</b> ván.","Ù (cả bài thành phỏm, dư tối đa 1 lá): mỗi người trả theo mức <b>Ù ăn mỗi người</b> ở trên (mặc định 1 ván). Bị ăn cây chốt: trả người ăn thêm <b>4</b> ván.","Mỗi lượt 30 giây, hết giờ tự bốc và tự đánh lá rác lớn nhất."],
+  phom:["Chia 9 lá, người đánh đầu 10 lá. Mỗi lượt: ăn lá vừa đánh của người trước (nếu tạo được phỏm) hoặc bốc, rồi đánh 1 lá.","Phỏm: 3–4 lá cùng số, hoặc từ 3 lá liên tiếp cùng chất (A thấp, không vòng K–A).","Lá đã ăn phải nằm trong phỏm, mỗi phỏm chỉ chứa 1 lá ăn; không được đánh lá đã ăn.","Mỗi người đánh đủ 4 lá thì hạ phỏm và tự gửi bài vào phỏm người khác. Điểm rác thấp nhất là Nhất.","Trả cho Nhất: Nhì <b>1</b> · Ba <b>2</b> · Bét <b>3</b> · Móm (không có phỏm) <b>4</b> ván.","Ù (cả bài thành phỏm, dư tối đa 1 lá): mỗi người trả <b>5</b> ván. Bị ăn cây chốt: trả người ăn thêm <b>4</b> ván.","Mỗi lượt 30 giây, hết giờ tự bốc và tự đánh lá rác lớn nhất."],
   bacay:["Mỗi người góp trước <b>tiền/ván</b>. Chia 3 lá, cộng điểm lấy hàng đơn vị (10, J, Q, K = 0).","<b>Ba tây</b> (3 lá J, Q, K) to nhất, sau đó 9 nút xuống 0 nút.","Bằng điểm thì so lá cao nhất theo chất: Rô > Cơ > Bích > Tép.","Chia thưởng tổng tiền góp: Nhất <b>50%</b> · Nhì <b>30%</b> · Ba <b>20%</b> (bàn 2 người chia 62,5% / 37,5%).","Bấm Lật bài khi sẵn sàng; sau 20 giây bài tự lật."]
 };
 var QUICK={sam:[500,1000,2000,5000],phom:[2000,5000,10000,20000],bacay:[5000,10000,20000,50000]};
@@ -348,7 +346,6 @@ function renderLobby(){
   else if(mine>=0&&(!S_.hostOnline||!S_.hostSeated)){var cl=el("button","btn sm","Nhận chủ phòng"); cl.onclick=function(){socket.emit("claimHost")}; hl.appendChild(cl)}
   else hl.appendChild(el("span","muted","Muốn làm chủ phòng thì nhờ "+S_.hostName+" bấm “Nhường 👑” ở ghế của bạn."));
   var q=$("quick"); q.textContent=""; if(host) QUICK[GAME].forEach(function(v){var b=el("button","btn sm ghost",v.toLocaleString("vi-VN")); b.onclick=function(){socket.emit("stake",v)}; q.appendChild(b)});
-  $("uRow").hidden=GAME!=="phom"; var us=$("uSel"); us.value=String(S_.uMult||1); us.disabled=!host;
   var ul=$("rules"); ul.textContent=""; RULES[GAME].forEach(function(t){var li=el("li"); li.innerHTML=t; ul.appendChild(li)});
   var n=S_.seats.filter(Boolean).length, min=2;
   $("startBtn").hidden=!host; $("startBtn").disabled=n<min; $("resetBtn").hidden=!host;
@@ -356,7 +353,6 @@ function renderLobby(){
 }
 $("stakeIn").addEventListener("change",function(){socket.emit("stake",Number($("stakeIn").value))});
 $("startBtn").addEventListener("click",function(){socket.emit("start")});
-$("uSel").addEventListener("change",function(){socket.emit("uMult",Number($("uSel").value))});
 var resetArm=0; $("resetBtn").addEventListener("click",function(){if(Date.now()-resetArm<4000){resetArm=0; $("resetBtn").textContent="Đặt lại bảng xếp hạng"; socket.emit("resetBxh")} else {resetArm=Date.now(); $("resetBtn").textContent="Bấm lần nữa để xoá BXH"}});
 
 /* ----- table ----- */

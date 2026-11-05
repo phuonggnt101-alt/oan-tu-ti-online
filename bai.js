@@ -106,7 +106,7 @@ function attach(io) {
     if (!r) {
       const G = GAMES[game];
       r = { key, game, id, people: new Map(), sockets: new Map(), seats: Array(G.max).fill(null), host: null,
-        stake: G.stake, uMult: 1, phase: "lobby", st: null, timer: null, deadline: 0, bxh: new Map(), log: [], result: null, lastWinner: null, emptySince: null, roundNo: 0 };
+        stake: G.stake, phase: "lobby", st: null, timer: null, deadline: 0, bxh: new Map(), log: [], result: null, lastWinner: null, emptySince: null, roundNo: 0 };
       rooms.set(key, r);
     }
     return r;
@@ -128,7 +128,7 @@ function attach(io) {
     const base = {
       game: room.game, gameName: GAMES[room.game].name, unit: GAMES[room.game].unit, room: room.id, me: pid, host: room.host,
       hostName: nameOf(room, room.host), hostSeated: room.seats.includes(room.host), hostOnline: on.has(room.host),
-      phase: room.phase, stake: room.stake, uMult: room.uMult, now: Date.now(), deadline: room.deadline, mySeat, roundNo: room.roundNo,
+      phase: room.phase, stake: room.stake, now: Date.now(), deadline: room.deadline, mySeat, roundNo: room.roundNo,
       seats: room.seats.map((p) => p && { pid: p, name: nameOf(room, p), online: on.has(p) }),
       bxh: [...room.bxh.entries()].map(([p, v]) => ({ pid: p, name: nameOf(room, p), total: v })).sort((a, b) => b.total - a.total),
       spectators: [...room.people.keys()].filter((p) => on.has(p) && !room.seats.includes(p)).map((p) => nameOf(room, p)),
@@ -324,8 +324,8 @@ function attach(io) {
     st.laid = {};
     if (uSeat != null) {
       st.laid[uSeat] = bestArrangement(st.hands[uSeat], st.eaten[uSeat]);
-      for (const s of st.order) if (s !== uSeat) pay(room, deltas, P(s), P(uSeat), room.uMult * X);
-      rows.push("🎉 " + nameOf(room, P(uSeat)) + " Ù! Mỗi người trả " + room.uMult + " ván.");
+      for (const s of st.order) if (s !== uSeat) pay(room, deltas, P(s), P(uSeat), 5 * X);
+      rows.push("🎉 " + nameOf(room, P(uSeat)) + " Ù! Mỗi người trả 5 ván.");
       for (const ch of st.chot) { pay(room, deltas, P(ch.from), P(ch.to), 4 * X); rows.push(nameOf(room, P(ch.from)) + " bị ăn cây chốt, trả thêm 4 ván."); }
       return endRound(room, uSeat, deltas, rows);
     }
@@ -423,7 +423,6 @@ function attach(io) {
     socket.on("claimHost", () => { if (!room || room.host === pid || !room.seats.includes(pid)) return; if (online(room).has(room.host) && room.seats.includes(room.host)) return; room.host = pid; log(room, nameOf(room, pid) + " nhận làm chủ phòng."); broadcast(room); });
     socket.on("kick", (i) => { if (!isHost() || room.phase === "playing" || !room.seats[i]) return; room.seats[i] = null; broadcast(room); });
     socket.on("stake", (v) => { if (!isHost() || room.phase === "playing") return; const n = Math.round(Number(v)); if (n >= 0 && n <= 1e9) { room.stake = n; broadcast(room); } });
-    socket.on("uMult", (v) => { if (!isHost() || room.phase === "playing") return; const n = Number(v); if ([1, 2, 3, 4, 5].includes(n)) { room.uMult = n; broadcast(room); } });
     socket.on("start", () => { if (!isHost() || room.phase === "playing") return; start(room); });
     socket.on("lobby", () => { if (!isHost()) return; if (room.phase === "playing") { clearTimeout(room.timer); log(room, "Chủ phòng huỷ ván " + room.roundNo + ", không tính tiền."); if (room.game === "bacay" && room.st?.paid) { const back = {}; for (const p in room.st.paid) back[p] = -room.st.paid[p]; applyDeltas(room, back); } } room.phase = "lobby"; room.st = null; room.result = null; room.deadline = 0; broadcast(room); });
     socket.on("resetBxh", () => { if (!isHost() || room.phase === "playing") return; room.bxh.clear(); log(room, "Chủ phòng đã đặt lại bảng xếp hạng."); broadcast(room); });
