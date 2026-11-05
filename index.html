@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Oẳn Tù Tì Online</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✊</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap">
+<style>
+/* Sticker style: chunky ink outlines + hard offset shadows; each hand owns a color. */
+:root{
+  --bg:#F6F1FF; --dots:rgba(70,40,140,.10); --card:#FFFFFF; --ink:#1E1638; --muted:#6B6488;
+  --keo:#FF6B6B; --bua:#FFB627; --bao:#2EC4B6; --accent:#6C47FF; --win:#18A558; --lose:#E5383B; --draw:#3D7BFF;
+  --soft:#EEE8FB; --shadow:4px 4px 0 var(--ink); --shadow-lg:6px 6px 0 var(--ink);
+  --f-display:"Baloo 2","Trebuchet MS",system-ui,sans-serif;
+  --f-body:"Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#15112A; --dots:rgba(200,180,255,.07); --card:#221C3D; --ink:#F2EEFF; --muted:#A79FC9;
+  --keo:#FF7A7A; --bua:#FFC145; --bao:#3DD6C8; --accent:#9B82FF; --win:#3DD68C; --lose:#FF5C5F; --draw:#6FA0FF;
+  --soft:#2C2550; --shadow:4px 4px 0 #000; --shadow-lg:6px 6px 0 #000; color-scheme:dark}}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;min-height:100vh;
+  background-image:radial-gradient(var(--dots) 1.5px,transparent 1.6px);background-size:20px 20px;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.wrap{max-width:880px;margin:0 auto;padding-block:20px 56px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:22px}
+button{font:inherit;color:inherit}
+.box{background:var(--card);border:3px solid var(--ink);border-radius:18px;box-shadow:var(--shadow)}
+
+/* header */
+header{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:12px}
+.logo .mark{display:flex}
+.logo .mark span{width:44px;height:44px;border:3px solid var(--ink);border-radius:12px;display:grid;place-items:center;font-size:24px;margin-left:-10px;box-shadow:3px 3px 0 var(--ink)}
+.logo .mark span:first-child{margin-left:0;background:var(--keo);transform:rotate(-8deg)}
+.logo .mark span:nth-child(2){background:var(--bua);transform:rotate(4deg)}
+.logo .mark span:nth-child(3){background:var(--bao);transform:rotate(-3deg)}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(28px,6vw,40px);line-height:1;margin:0}
+.meta{display:flex;gap:8px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:14px;padding:6px 12px;border:2.5px solid var(--ink);border-radius:999px;background:var(--card);cursor:pointer;box-shadow:2px 2px 0 var(--ink);transition:transform .12s}
+.pill:hover{transform:translate(-1px,-1px)}
+.pill:active{transform:translate(1px,1px);box-shadow:0 0 0 var(--ink)}
+.pill .dot{width:9px;height:9px;border-radius:50%;background:var(--win)}
+.pill.off .dot{background:var(--lose)}
+
+/* stage */
+.stage{padding:22px;display:grid;grid-template-columns:auto 1fr;gap:24px;align-items:center;position:relative;overflow:hidden}
+.stage::after{content:"";position:absolute;right:-40px;top:-40px;width:160px;height:160px;border-radius:50%;background:var(--soft);z-index:0}
+.stage>*{position:relative;z-index:1}
+@media (max-width:600px){.stage{grid-template-columns:1fr;justify-items:center;text-align:center}}
+.ring{width:150px;height:150px;position:relative}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:12}
+.ring .track{stroke:var(--soft)}
+.ring .bar{stroke:var(--accent);stroke-linecap:round;transition:stroke-dashoffset .25s linear,stroke .3s}
+.ring.hurry .bar{stroke:var(--lose)}
+.ring .n{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+.ring .n b{display:block;font-family:var(--f-display);font-weight:800;font-size:54px;line-height:.9;font-variant-numeric:tabular-nums}
+.ring .n small{display:block;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.ring.hurry .n b{color:var(--lose);animation:beat 1s infinite}
+@keyframes beat{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.eyebrow{font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin:0 0 4px}
+.status h2{font-family:var(--f-display);font-weight:800;font-size:clamp(26px,5vw,34px);line-height:1.1;margin:0 0 6px;text-wrap:balance}
+.status p{margin:0;color:var(--muted);max-width:52ch}
+.actions{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap}
+@media (max-width:600px){.actions{justify-content:center}.status p{margin-inline:auto}}
+.btn{font-family:var(--f-display);font-weight:800;font-size:19px;padding:10px 22px;border:3px solid var(--ink);border-radius:14px;background:var(--accent);color:#fff;cursor:pointer;box-shadow:var(--shadow);transition:transform .12s,box-shadow .12s}
+.btn:hover{transform:translate(-2px,-2px);box-shadow:var(--shadow-lg)}
+.btn:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink)}
+:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+
+/* hands */
+.hands{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.hand{appearance:none;cursor:pointer;border:3px solid var(--ink);border-radius:20px;padding:18px 8px 14px;display:flex;flex-direction:column;align-items:center;gap:2px;
+  box-shadow:var(--shadow);transition:transform .15s,box-shadow .15s,opacity .2s;position:relative;color:#1E1638}
+.hand[data-c=keo]{background:var(--keo)} .hand[data-c=bua]{background:var(--bua)} .hand[data-c=bao]{background:var(--bao)}
+.hand .em{font-size:clamp(46px,12vw,72px);line-height:1.05;filter:drop-shadow(2px 3px 0 rgba(0,0,0,.18));transition:transform .2s}
+.hand .lb{font-family:var(--f-display);font-weight:800;font-size:clamp(20px,4.5vw,26px);line-height:1}
+.hand .ht{font-size:12px;font-weight:600;opacity:.75}
+.hand:hover:not(:disabled){transform:translate(-2px,-4px) rotate(-1.5deg);box-shadow:var(--shadow-lg)}
+.hand:hover:not(:disabled) .em{transform:rotate(-10deg) scale(1.08)}
+.hand:active:not(:disabled){transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink)}
+.hand.on{transform:translate(-2px,-6px) rotate(-2deg);box-shadow:0 0 0 4px var(--card),0 0 0 7px var(--ink),var(--shadow-lg)}
+.hand.on::after{content:"✓ Bạn chọn";position:absolute;top:-14px;right:-8px;background:var(--ink);color:var(--card);font-weight:700;font-size:12px;padding:3px 9px;border-radius:999px;transform:rotate(6deg)}
+.hand:disabled{cursor:not-allowed;opacity:.38;filter:saturate(.5)}
+.hand.on:disabled{opacity:1;filter:none}
+
+/* sections */
+.sec h3{font-family:var(--f-display);font-weight:800;font-size:21px;margin:0 0 10px;display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.sec h3 small{font-family:var(--f-body);font-weight:600;font-size:13px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.pc{background:var(--card);border:3px solid var(--ink);border-radius:16px;padding:14px 10px 12px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;box-shadow:3px 3px 0 var(--ink);min-width:0;position:relative}
+.pc .av{width:44px;height:44px;border-radius:50%;border:2.5px solid var(--ink);display:grid;place-items:center;font-family:var(--f-display);font-weight:800;font-size:20px;color:#1E1638}
+.pc .nm{font-weight:700;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pc .hd{font-size:38px;line-height:1;height:42px;display:grid;place-items:center}
+.pc .hd.secret{width:42px;border-radius:10px;background:var(--soft);border:2px dashed var(--muted);font-size:20px;color:var(--muted)}
+.pc .hd.wait{font-size:22px;color:var(--muted);animation:think 1.4s infinite}
+@keyframes think{0%,100%{opacity:.35}50%{opacity:1}}
+.pc.me{background:var(--soft)}
+.pc.spot{border-color:var(--lose);box-shadow:4px 4px 0 var(--lose)}
+.pc.reveal .hd{animation:flip .5s cubic-bezier(.2,1.4,.4,1) both}
+@keyframes flip{0%{transform:rotateY(90deg) scale(.6)}100%{transform:none}}
+.tag{font-weight:700;font-size:12px;padding:2px 10px;border-radius:999px;border:2px solid var(--ink);white-space:nowrap}
+.tag.w{background:var(--win);color:#fff} .tag.l{background:var(--lose);color:#fff} .tag.d{background:var(--draw);color:#fff}
+.tag.ok{background:var(--ink);color:var(--card)} .tag.p{background:transparent;color:var(--muted);border-style:dashed;border-color:var(--muted)}
+.tag.s{background:transparent;color:var(--muted);border-color:var(--muted)}
+.off-badge{position:absolute;top:8px;right:10px;width:9px;height:9px;border-radius:50%;background:var(--muted)}
+.empty{grid-column:1/-1;text-align:center;color:var(--muted);padding:22px;border:3px dashed var(--muted);border-radius:16px;margin:0}
+
+.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.log li{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;padding:12px 14px;background:var(--card);border:2.5px solid var(--ink);border-radius:14px}
+.log .rn{font-family:var(--f-display);font-weight:800;font-size:15px;background:var(--ink);color:var(--card);border-radius:8px;padding:2px 8px;white-space:nowrap}
+.log .tx{min-width:0}
+.log .tx b{display:block;font-weight:700}
+.log .row{color:var(--muted);font-size:13px;overflow-wrap:anywhere}
+.rules{font-size:13.5px;color:var(--muted);line-height:1.7;margin:0;padding:14px 16px;border:2.5px dashed var(--muted);border-radius:14px}
+.rules b{color:var(--ink)}
+
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(20,12,45,.55);display:grid;place-items:center;padding:16px;z-index:50}
+.modal .box{width:min(400px,100%);padding:24px;display:flex;flex-direction:column;gap:14px}
+.modal h2{font-family:var(--f-display);font-weight:800;font-size:28px;margin:0;line-height:1.1}
+.modal p{margin:0;color:var(--muted)}
+.modal input{font:inherit;font-size:18px;font-weight:600;padding:12px 14px;border:3px solid var(--ink);border-radius:12px;background:var(--bg);color:var(--ink);width:100%}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--card);padding:10px 18px;border-radius:999px;font-weight:600;z-index:60;box-shadow:var(--shadow)}
+.confetti{position:fixed;inset:0;pointer-events:none;z-index:40}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">
+      <div class="mark" aria-hidden="true"><span>✌️</span><span>✊</span><span>✋</span></div>
+      <h1>Oẳn Tù Tì</h1>
+    </div>
+    <div class="meta">
+      <button class="pill" id="roomBtn" title="Sao chép link mời"><span class="dot"></span><span id="roomLb">Phòng chung</span> · Mời bạn</button>
+      <button class="pill" id="nameBtn" title="Đổi tên">👤 <span id="nameLb">Bạn</span></button>
+    </div>
+  </header>
+
+  <section class="box stage" aria-live="polite">
+    <div class="ring" id="ring" aria-hidden="true">
+      <svg viewBox="0 0 120 120"><circle class="track" cx="60" cy="60" r="50"/><circle class="bar" id="bar" cx="60" cy="60" r="50" stroke-dasharray="314.16" stroke-dashoffset="314.16"/></svg>
+      <div class="n"><div><b id="sec">–</b><small id="secLb">giây</small></div></div>
+    </div>
+    <div class="status">
+      <p class="eyebrow" id="eyebrow">Sẵn sàng</p>
+      <h2 id="title">Đang kết nối…</h2>
+      <p id="desc">Chờ một chút nhé.</p>
+      <div class="actions"><button class="btn" id="startBtn" hidden>Bắt đầu ván mới</button></div>
+    </div>
+  </section>
+
+  <section class="hands" aria-label="Chọn kéo, búa hoặc bao">
+    <button class="hand" data-c="keo" disabled><span class="em">✌️</span><span class="lb">Kéo</span><span class="ht">thắng Bao</span></button>
+    <button class="hand" data-c="bua" disabled><span class="em">✊</span><span class="lb">Búa</span><span class="ht">thắng Kéo</span></button>
+    <button class="hand" data-c="bao" disabled><span class="em">✋</span><span class="lb">Bao</span><span class="ht">thắng Búa</span></button>
+  </section>
+
+  <section class="sec">
+    <h3>Người chơi <small id="pcount"></small></h3>
+    <div class="grid" id="players"></div>
+  </section>
+
+  <section class="sec">
+    <h3>Diễn biến ván <small id="hcount"></small></h3>
+    <ul class="log" id="log"></ul>
+  </section>
+
+  <p class="rules"><b>Luật chơi:</b> Kéo thắng Bao, Búa thắng Kéo, Bao thắng Búa. Cả nhóm ra giống nhau, hoặc có đủ cả ba thứ, là <b>hoà</b> và nhóm đó chơi lại. Nếu có <b>từ 2 người thua</b> trở lên, nhóm thua đấu tiếp lượt sau cho đến khi chỉ còn 1 người thua. Từ lượt 2, ai không chọn kịp bị tính là thua.</p>
+</div>
+
+<div class="modal" id="modal" hidden>
+  <form class="box" id="nameForm">
+    <h2>Bạn tên gì?</h2>
+    <p>Tên sẽ hiện cho mọi người trong phòng.</p>
+    <input id="nameInput" maxlength="24" placeholder="Ví dụ: Hiếu" autocomplete="nickname" required>
+    <button class="btn" type="submit">Vào chơi</button>
+  </form>
+</div>
+<div class="toast" id="toast" hidden></div>
+<canvas class="confetti" id="confetti"></canvas>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+(function(){
+const NAMES={keo:"Kéo",bua:"Búa",bao:"Bao"}, ICON={keo:"✌️",bua:"✊",bao:"✋"}, BEATS={keo:"bao",bua:"keo",bao:"bua"};
+const PALETTE=["#FF6B6B","#FFB627","#2EC4B6","#9B82FF","#FF8FB1","#7BD389","#5FA8FF","#FFD166"];
+const $=id=>document.getElementById(id);
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+
+const params=new URLSearchParams(location.search);
+const roomId=(params.get("phong")||"chung").toLowerCase().replace(/[^a-z0-9-]/g,"").slice(0,24)||"chung";
+let pid=store.get("ott_pid"); if(!pid){pid=Math.random().toString(36).slice(2)+Date.now().toString(36); store.set("ott_pid",pid)}
+let myName=store.get("ott_name")||"";
+let S=null, offset=0, connected=false, lastKey="", celebrated="";
+
+const socket=io();
+function join(){socket.emit("join",{room:roomId,pid,name:myName})}
+socket.on("connect",()=>{connected=true; if(myName) join(); paintConn()});
+socket.on("disconnect",()=>{connected=false; paintConn()});
+socket.on("state",st=>{S=st; offset=st.now-Date.now(); render()});
+
+/* name */
+function askName(){ $("nameInput").value=myName; $("modal").hidden=false; setTimeout(()=>$("nameInput").focus(),50) }
+$("nameForm").addEventListener("submit",e=>{e.preventDefault(); const v=$("nameInput").value.trim().slice(0,24); if(!v) return;
+  const first=!myName; myName=v; store.set("ott_name",v); $("modal").hidden=true; $("nameLb").textContent=v;
+  if(first) join(); else socket.emit("rename",v);});
+$("nameBtn").addEventListener("click",askName);
+if(!myName) askName(); else $("nameLb").textContent=myName;
+$("roomLb").textContent=roomId==="chung"?"Phòng chung":"Phòng "+roomId;
+
+$("roomBtn").addEventListener("click",async()=>{
+  const url=location.origin+location.pathname+(roomId==="chung"?"":"?phong="+roomId);
+  try{await navigator.clipboard.writeText(url); toast("Đã sao chép link mời")}catch(e){toast(url)}
+});
+function toast(t){const el=$("toast"); el.textContent=t; el.hidden=false; clearTimeout(toast.t); toast.t=setTimeout(()=>el.hidden=true,2200)}
+function paintConn(){ $("roomBtn").classList.toggle("off",!connected); if(!connected){$("title").textContent="Mất kết nối"; $("desc").textContent="Đang thử kết nối lại với máy chủ…"} }
+
+document.querySelectorAll(".hand").forEach(b=>b.addEventListener("click",()=>{ if(!S) return; socket.emit("pick",b.dataset.c); S.myPick=b.dataset.c; render() }));
+$("startBtn").addEventListener("click",()=>socket.emit("start"));
+
+/* helpers */
+const now=()=>Date.now()+offset;
+const nm=id=>(S&&S.people[id]&&S.people[id].name)||"Người chơi";
+const lbl=id=>nm(id)+(id===pid?" (bạn)":"");
+const list=ids=>ids.map(lbl).join(", ");
+function color(id){let h=0; for(const c of id) h=(h*31+c.charCodeAt(0))>>>0; return PALETTE[h%PALETTE.length]}
+
+function render(){
+  if(!S) return;
+  const t=now(), r=S.result;
+  const inGroup=!S.players||S.players.includes(pid);
+  const open=S.phase==="picking"&&t<S.endsAt&&inGroup&&connected;
+  const eb=$("eyebrow"), ti=$("title"), de=$("desc"), st=$("startBtn");
+  st.hidden=!(S.phase==="idle"||S.phase==="done");
+  st.textContent=S.phase==="done"?"Chơi ván mới":"Bắt đầu ván mới";
+
+  if(S.phase==="idle"){eb.textContent="Sẵn sàng"; ti.textContent="Chưa có ván nào"; de.textContent="Bấm bắt đầu, mọi người trong phòng có 20 giây để ra tay. Gửi link mời cho bạn bè bằng nút ở góc trên.";}
+  else if(S.phase==="picking"){
+    eb.textContent="Lượt "+S.roundNo+(S.players?" · nhóm "+S.players.length+" người":" · ai cũng chơi được");
+    if(t>=S.endsAt){ti.textContent="Hết giờ! Lật bài…"; de.textContent="Đang tổng hợp lựa chọn.";}
+    else if(!inGroup){ti.textContent="Bạn đã an toàn 😎"; de.textContent="Nhóm thua đang đấu lại: "+list(S.players)+".";}
+    else if(S.myPick){ti.textContent="Bạn ra "+NAMES[S.myPick]+" "+ICON[S.myPick]; de.textContent="Vẫn đổi ý được đến khi hết giờ. Lựa chọn của người khác được giấu kín.";}
+    else{ti.textContent=S.players?"Đấu lại nào!":"Ra tay đi!"; de.textContent=S.players?"Nhóm "+S.players.length+" người: "+list(S.players)+". Không chọn kịp là thua.":"Chọn Kéo, Búa hoặc Bao bên dưới.";}
+  }else if(r){
+    eb.textContent="Kết quả lượt "+S.roundNo;
+    const why=r.outcome==="timeout"?"Không chọn kịp: "+list(r.timeouts)+".":r.winChoice?NAMES[r.winChoice]+" thắng "+NAMES[BEATS[r.winChoice]]+".":"";
+    if(r.outcome==="empty"){ti.textContent="Không ai chọn"; de.textContent="Ván dừng lại. Bấm để chơi ván mới.";}
+    else if(r.outcome==="alone"){ti.textContent="Chỉ có 1 người chọn"; de.textContent="Cần ít nhất 2 người. Rủ thêm bạn bằng nút Mời bạn nhé.";}
+    else if(r.outcome==="draw"){ti.textContent="Hoà! 🤝"; de.textContent=(new Set(Object.values(r.picks)).size===3?"Có đủ cả Kéo, Búa, Bao.":"Cả nhóm ra giống nhau.")+" Nhóm "+r.next.length+" người chơi lại.";}
+    else if(r.end){ti.textContent=r.finalLoser?lbl(r.finalLoser)+" thua rồi!":"Kết thúc"; de.textContent=why+" Ván kết thúc sau "+S.roundNo+" lượt.";}
+    else{ti.textContent=r.winners.length+" thắng · "+r.losers.length+" thua"; de.textContent=why+" Nhóm thua vào lượt "+(S.roundNo+1)+": "+list(r.next)+".";}
+    if(r.end&&r.finalLoser&&celebrated!==S.roundNo+":"+r.finalLoser){celebrated=S.roundNo+":"+r.finalLoser; confetti()}
+  }
+
+  document.querySelectorAll(".hand").forEach(b=>{b.disabled=!open; b.classList.toggle("on",S.phase==="picking"&&S.myPick===b.dataset.c)});
+
+  /* players */
+  const grid=$("players"); grid.textContent="";
+  let cards=[];
+  if(r&&(S.phase==="result"||S.phase==="done")){
+    const ids=[...new Set(Object.keys(r.picks).concat(r.timeouts||[]))];
+    ids.forEach(id=>{
+      let tag;
+      if(r.outcome==="draw") tag=["d","Hoà"];
+      else if(r.outcome==="alone"||r.outcome==="empty") tag=["s","—"];
+      else if((r.timeouts||[]).includes(id)) tag=["l","Hết giờ"];
+      else if(r.winners.includes(id)) tag=["w","Thắng"];
+      else tag=["l",r.finalLoser===id?"Thua cuối":"Thua"];
+      cards.push({id,hand:r.picks[id]?ICON[r.picks[id]]:"⏱",tag,reveal:true,spot:r.finalLoser===id,ord:tag[0]==="l"?0:1});
+    });
+    cards.sort((a,b)=>a.ord-b.ord);
+  }else{
+    const ids=S.phase==="picking"&&S.players?S.players:Object.keys(S.people).filter(id=>S.people[id].online);
+    ids.forEach(id=>{
+      const has=S.picked.includes(id);
+      let hand="",cls="",tag;
+      if(S.phase!=="picking"){tag=["s","Trong phòng"]}
+      else if(id===pid&&S.myPick){hand=ICON[S.myPick]; tag=["ok","Đã chọn"]}
+      else if(has){hand="?"; cls="secret"; tag=["ok","Đã chọn"]}
+      else{hand="•••"; cls="wait"; tag=["p","Đang nghĩ"]}
+      cards.push({id,hand,cls,tag});
+    });
+  }
+  $("pcount").textContent=cards.length?cards.length+" người":"";
+  if(!cards.length){const p=document.createElement("p"); p.className="empty"; p.textContent="Chưa có ai trong phòng."; grid.appendChild(p)}
+  const key=S.phase+S.roundNo;
+  cards.forEach(c=>{
+    const d=document.createElement("div"); d.className="pc"+(c.id===pid?" me":"")+(c.spot?" spot":"")+(c.reveal&&key!==lastKey?" reveal":"");
+    const av=document.createElement("div"); av.className="av"; av.style.background=color(c.id); av.textContent=(nm(c.id)[0]||"?").toUpperCase();
+    const n=document.createElement("div"); n.className="nm"; n.textContent=lbl(c.id);
+    const h=document.createElement("div"); h.className="hd "+(c.cls||""); h.textContent=c.hand;
+    const tg=document.createElement("span"); tg.className="tag "+c.tag[0]; tg.textContent=c.tag[1];
+    if(S.people[c.id]&&!S.people[c.id].online){const o=document.createElement("span"); o.className="off-badge"; o.title="Đã rời phòng"; d.appendChild(o)}
+    d.append(av,n,h,tg); grid.appendChild(d);
+  });
+  lastKey=key;
+
+  /* history */
+  const log=$("log"); log.textContent="";
+  const hist=S.history||[];
+  $("hcount").textContent=hist.length?hist.length+" lượt":"";
+  if(!hist.length){const li=document.createElement("li"); li.innerHTML='<span class="rn">—</span><div class="tx row">Các lượt của ván sẽ được ghi ở đây.</div>'; log.appendChild(li)}
+  hist.slice().reverse().forEach(h=>{
+    const li=document.createElement("li");
+    const rn=document.createElement("span"); rn.className="rn"; rn.textContent="Lượt "+h.roundNo;
+    const tx=document.createElement("div"); tx.className="tx";
+    const b=document.createElement("b");
+    b.textContent=h.outcome==="draw"?"Hoà, chơi lại":h.outcome==="empty"?"Không ai chọn":h.outcome==="alone"?"Chỉ 1 người chọn":h.end?"Người thua cuối: "+(h.finalLoser?lbl(h.finalLoser):"—"):h.losers.length+" người thua đi tiếp";
+    const row=document.createElement("div"); row.className="row";
+    row.textContent=Object.keys(h.picks).map(id=>ICON[h.picks[id]]+" "+lbl(id)).concat((h.timeouts||[]).map(id=>"⏱ "+lbl(id))).join("  ·  ");
+    tx.append(b,row); li.append(rn,tx); log.appendChild(li);
+  });
+  tick();
+}
+
+function tick(){
+  const C=314.16, ring=$("ring"), bar=$("bar"), sec=$("sec"), lb=$("secLb");
+  ring.classList.remove("hurry");
+  if(!S){return}
+  const t=now();
+  if(S.phase==="picking"){
+    const left=Math.max(0,S.endsAt-t); sec.textContent=Math.ceil(left/1000); lb.textContent="giây";
+    bar.style.strokeDashoffset=C*(1-left/S.roundMs); if(left>0&&left<=5000) ring.classList.add("hurry");
+    const k="closed"+S.roundNo; if(left===0&&tick.k!==k){tick.k=k; render()}
+  }else if(S.phase==="result"){
+    const left=Math.max(0,S.nextAt-t); sec.textContent=Math.ceil(left/1000); lb.textContent="lượt sau";
+    bar.style.strokeDashoffset=C*(1-left/S.revealMs);
+  }else{sec.textContent=S.phase==="done"?"🏁":"–"; lb.textContent=S.phase==="done"?"xong":"giây"; bar.style.strokeDashoffset=S.phase==="done"?0:C}
+}
+setInterval(tick,200);
+
+/* confetti */
+function confetti(){
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const cv=$("confetti"), ctx=cv.getContext("2d"); cv.width=innerWidth; cv.height=innerHeight;
+  const cols=["#FF6B6B","#FFB627","#2EC4B6","#6C47FF","#FF8FB1"];
+  const ps=Array.from({length:140},()=>({x:Math.random()*cv.width,y:-20-Math.random()*cv.height*.5,vx:(Math.random()-.5)*3,vy:2+Math.random()*3,r:Math.random()*6,s:5+Math.random()*6,c:cols[Math.random()*cols.length|0],a:Math.random()*6}));
+  let f=0; (function step(){ctx.clearRect(0,0,cv.width,cv.height);
+    ps.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.a+=.1;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.a);ctx.fillStyle=p.c;ctx.fillRect(-p.s/2,-p.s/4,p.s,p.s/2);ctx.restore()});
+    if(++f<200) requestAnimationFrame(step); else ctx.clearRect(0,0,cv.width,cv.height)})();
+}
+})();
+</script>
+</body>
+</html>

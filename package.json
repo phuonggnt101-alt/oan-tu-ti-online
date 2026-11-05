@@ -1,0 +1,15 @@
+{
+  "name": "oan-tu-ti-online",
+  "version": "1.0.0",
+  "description": "Oẳn tù tì nhiều người chơi theo thời gian thực",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "socket.io": "4.8.1"
+  }
+}
