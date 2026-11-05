@@ -48,6 +48,11 @@ function occupantAt(horses, abs) {
   }
   return null;
 }
+// Ngựa cản đường: ngựa đang được bảo vệ trên ô xuất quân của nó không bị đá nhưng cũng không chắn đường
+const blocks = (horses, rules, abs) => {
+  const o = occupantAt(horses, abs);
+  return !!o && !(rules.safeStart && horses[o.seat][o.h] === 0);
+};
 const homeTaken = (horses, seat, step) => horses[seat].some((p) => p === GATE + step);
 
 /** Trả về {to, kick} nếu ngựa (seat,h) đi được với số d, ngược lại null. */
@@ -88,13 +93,13 @@ function legalMove(horses, rules, seat, h, d) {
     const step = t - GATE;
     if (step > 6) return null;
     if (rules.noJump) {
-      for (let q = p + 1; q <= GATE; q++) if (occupantAt(horses, absOf(seat, q))) return null;
+      for (let q = p + 1; q <= GATE; q++) if (blocks(horses, rules, absOf(seat, q))) return null;
       for (let s = 1; s < step; s++) if (homeTaken(horses, seat, s)) return null;
     }
     if (homeTaken(horses, seat, step)) return null;
     return { to: t, kick: null };
   }
-  if (rules.noJump) for (let q = p + 1; q < t; q++) if (occupantAt(horses, absOf(seat, q))) return null;
+  if (rules.noJump) for (let q = p + 1; q < t; q++) if (blocks(horses, rules, absOf(seat, q))) return null;
   const occ = occupantAt(horses, absOf(seat, t));
   if (occ && occ.seat === seat) return null;
   if (occ && rules.safeStart && horses[occ.seat][occ.h] === 0) return null;
