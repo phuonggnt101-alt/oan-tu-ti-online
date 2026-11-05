@@ -12,9 +12,10 @@ const BEATS = { keo: "bao", bua: "keo", bao: "bua" };
 const CHOICES = Object.keys(BEATS);
 
 // ---------- static files ----------
-const NAV = '<a class="pill" href="/ca-ngua" title="Chơi cờ cá ngựa" style="text-decoration:none;color:inherit">🐴 Cá ngựa</a>';
+const NAV = '<a class="pill" href="/ca-ngua" title="Chơi cờ cá ngựa" style="text-decoration:none;color:inherit">🐴 Cá ngựa</a><a class="pill" href="/bai" title="Sâm, Phỏm, Ba cây" style="text-decoration:none;color:inherit">🃏 Đánh bài</a>';
 const INDEX = fs.readFileSync(path.join(__dirname, "index.html"), "utf8").replace('<div class="meta">', '<div class="meta">' + NAV);
 const CANGUA = fs.readFileSync(path.join(__dirname, "ca-ngua.html"));
+const BAI = fs.readFileSync(path.join(__dirname, "bai.html"));
 const server = http.createServer((req, res) => {
   const p = (req.url || "/").split("?")[0];
   if (p === "/" || p === "/index.html") {
@@ -25,11 +26,16 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
     return res.end(CANGUA);
   }
+  if (p === "/bai" || p === "/bai/") {
+    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+    return res.end(BAI);
+  }
   if (p === "/healthz") { res.writeHead(200); return res.end("ok"); }
   res.writeHead(404); res.end("Not found");
 });
 const io = new Server(server);
 require("./ca-ngua").attach(io);
+require("./bai").attach(io);
 
 // ---------- game logic ----------
 function judge(picks, players) {
