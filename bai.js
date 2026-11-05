@@ -91,8 +91,8 @@ function bacayScore(cards) {
 
 // ================= PHÒNG =================
 const GAMES = {
-  sam: { name: "Sâm lốc", min: 2, max: 5, unit: "lá", stake: 1000, turnMs: 25000 },
-  phom: { name: "Phỏm", min: 2, max: 4, unit: "ván", stake: 5000, turnMs: 30000 },
+  sam: { name: "Sâm lốc", min: 2, max: 5, unit: "lá", stake: 1000, turnMs: 20000 },
+  phom: { name: "Phỏm", min: 2, max: 4, unit: "ván", stake: 5000, turnMs: 20000 },
   bacay: { name: "Ba cây", min: 2, max: 8, unit: "ván", stake: 10000, turnMs: 20000 },
 };
 
