@@ -171,6 +171,7 @@ body.cute .hand .c.sel{box-shadow:0 0 0 3px #FF5C8A,0 2px 0 #F7A8C8}
       <a class="pill" href="/">✊ Oẳn tù tì</a>
       <a class="pill" href="/ca-ngua">🐴 Cá ngựa</a>
       <button class="pill" id="roomBtn" hidden><span class="dot"></span><span id="roomLb">Phòng chung</span> · Mời bạn</button>
+      <button class="pill" id="sndBtn" title="Bật/tắt âm thanh">🔊 Âm thanh</button>
       <button class="pill" id="deckBtn" title="Đổi kiểu bộ bài">🎀 Bài dễ thương</button>
       <button class="pill" id="nameBtn">👤 <span id="nameLb">Bạn</span></button>
     </div>
@@ -297,6 +298,50 @@ $("roomBtn").addEventListener("click",function(){
   var url=location.origin+"/bai?game="+GAME+(roomId==="chung"?"":"&phong="+roomId);
   if(navigator.clipboard) navigator.clipboard.writeText(url).then(function(){toast("Đã sao chép link mời")},function(){toast(url)}); else toast(url)});
 
+/* ----- sound (Web Audio, no files) ----- */
+var muted=store.get("ott_mute")==="1", actx=null, lastTick=-1;
+function unlockAudio(){try{if(!actx){var AC=window.AudioContext||window.webkitAudioContext; if(AC) actx=new AC()} if(actx&&actx.state==="suspended") actx.resume()}catch(e){}}
+document.addEventListener("pointerdown",unlockAudio); document.addEventListener("keydown",unlockAudio);
+function tone(f,dur,type,vol,delay,f2){if(muted||!actx) return; var t=actx.currentTime+(delay||0);
+  var o=actx.createOscillator(), g=actx.createGain(); o.type=type||"sine"; o.frequency.setValueAtTime(f,t); if(f2) o.frequency.exponentialRampToValueAtTime(f2,t+dur);
+  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol||0.2,t+0.01); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+dur+0.02)}
+function noise(dur,freq,vol,delay){if(muted||!actx) return; var t=actx.currentTime+(delay||0);
+  var n=Math.floor(actx.sampleRate*dur), buf=actx.createBuffer(1,n,actx.sampleRate), d=buf.getChannelData(0);
+  for(var i=0;i<n;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/n,3);
+  var src=actx.createBufferSource(), bp=actx.createBiquadFilter(), g=actx.createGain(); src.buffer=buf; bp.type="bandpass"; bp.frequency.value=freq; bp.Q.value=0.9; g.gain.value=vol;
+  src.connect(bp); bp.connect(g); g.connect(actx.destination); src.start(t)}
+var snd={
+  card:function(){noise(0.07,2600,0.55); tone(180,0.06,"triangle",0.08)},
+  deal:function(){for(var i=0;i<6;i++) noise(0.05,2400+i*120,0.4,i*0.07)},
+  turn:function(){tone(784,0.16,"sine",0.22); tone(1175,0.24,"sine",0.2,0.13)},
+  tick:function(){tone(1400,0.04,"square",0.05)},
+  win:function(){[523,659,784,1047].forEach(function(f,i){tone(f,0.22,"triangle",0.22,i*0.11)}); tone(1319,0.45,"sine",0.15,0.44)},
+  lose:function(){[392,330,262].forEach(function(f,i){tone(f,0.28,"triangle",0.18,i*0.16)})},
+  end:function(){tone(660,0.2,"sine",0.15); tone(880,0.3,"sine",0.12,0.15)},
+  chop:function(){tone(110,0.35,"sawtooth",0.25,0,45); noise(0.25,600,0.7)},
+  bao:function(){for(var i=0;i<3;i++){tone(880,0.1,"square",0.08,i*0.2); tone(660,0.1,"square",0.08,i*0.2+0.1)}}
+};
+function applyMute(){$("sndBtn").textContent=muted?"🔇 Tắt tiếng":"🔊 Âm thanh"}
+applyMute();
+$("sndBtn").addEventListener("click",function(){muted=!muted; store.set("ott_mute",muted?"1":"0"); applyMute(); unlockAudio(); if(!muted) snd.turn()});
+function sfx(p,s){
+  if(!p||muted) return;
+  var me=s.mySeat;
+  if(s.phase==="playing"&&(p.phase!=="playing"||p.roundNo!==s.roundNo)){snd.deal(); return}
+  if(s.phase==="result"&&p.phase!=="result"){ if(s.result&&s.result.winner===pid) snd.win(); else if(me>=0) snd.lose(); else snd.end(); return }
+  if(s.phase!=="playing"||!s.t) return;
+  var last=p.log[p.log.length-1], k=s.log.lastIndexOf(last), news=k>=0?s.log.slice(k+1):[];
+  var played=0;
+  news.slice(-2).forEach(function(x,i){
+    if(x.indexOf("chặt heo")>=0) snd.chop();
+    else if(x.indexOf("báo Sâm!")>=0) snd.bao();
+    else if(/ đánh | ăn | bốc /.test(x)&&!played){played=1; setTimeout(snd.card,i*90)}
+  });
+  if(s.game!=="bacay"&&me>=0){var nowMine=s.t.turn===me&&!(s.game==="sam"&&s.t.step==="bao"); var wasMine=p.t&&p.roundNo===s.roundNo&&p.t.turn===me&&!(p.game==="sam"&&p.t.step==="bao");
+    if(nowMine&&!wasMine) setTimeout(snd.turn,news.length?180:0)}
+}
+
 /* ----- socket ----- */
 var S_=null, offset=0, connected=false, sel=[], socket=null;
 function askName(){$("nameInput").value=myName; $("modal").hidden=false; setTimeout(function(){$("nameInput").focus()},50)}
@@ -311,7 +356,7 @@ if(GAME){
   socket=io("/bai");
   socket.on("connect",function(){connected=true; if(myName) join(); $("roomBtn").classList.remove("off")});
   socket.on("disconnect",function(){connected=false; $("roomBtn").classList.add("off")});
-  socket.on("state",function(st){var prev=S_; S_=st; offset=st.now-Date.now();
+  socket.on("state",function(st){var prev=S_; S_=st; offset=st.now-Date.now(); try{sfx(prev,st)}catch(e){}
     if(prev&&prev.roundNo!==st.roundNo) sel=[];
     if(st.t&&st.t.myHand) sel=sel.filter(function(c){return st.t.myHand.indexOf(c)>=0});
     $("err").textContent=""; render()});
@@ -485,6 +530,7 @@ function render(){
   renderResult(); renderSide(); tick();
 }
 function tick(){var f=$("tfill"); if(!S_||S_.phase!=="playing"||!S_.deadline){f.style.width="0"; return}
+  var me=S_.mySeat; if(me>=0&&S_.t&&(S_.game==="bacay"?!S_.t.shown[me]:S_.t.turn===me)){var left=Math.ceil((S_.deadline-(Date.now()+offset))/1000); if(left>=1&&left<=5&&left!==lastTick){lastTick=left; snd.tick()}}
   var total=(S_.game==="sam"&&S_.t.step==="bao")?10000:20000;
   f.style.width=Math.max(0,Math.min(100,100*(S_.deadline-(Date.now()+offset))/total))+"%"}
 setInterval(tick,250);
