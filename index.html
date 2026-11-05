@@ -192,6 +192,7 @@ h1{font-family:var(--f-display);font-weight:800;font-size:clamp(28px,6vw,40px);l
 <canvas class="confetti" id="confetti"></canvas>
 
 <script src="/socket.io/socket.io.js"></script>
+<script src="/sfx.js"></script>
 <script>
 (function(){
 const NAMES={keo:"Kéo",bua:"Búa",bao:"Bao"}, ICON={keo:"✌️",bua:"✊",bao:"✋"}, BEATS={keo:"bao",bua:"keo",bao:"bua"};
@@ -209,7 +210,17 @@ const socket=io();
 function join(){socket.emit("join",{room:roomId,pid,name:myName})}
 socket.on("connect",()=>{connected=true; if(myName) join(); paintConn()});
 socket.on("disconnect",()=>{connected=false; paintConn()});
-socket.on("state",st=>{S=st; offset=st.now-Date.now(); render()});
+socket.on("state",st=>{const prev=S; S=st; offset=st.now-Date.now(); try{ottSfx(prev,st)}catch(e){} render()});
+function ottSfx(p,s){
+  if(!window.SFX||!p) return;
+  if(s.phase==="picking"&&(p.phase!=="picking"||p.roundNo!==s.roundNo)) return SFX.play("go");
+  if(s.phase!=="picking"&&p.phase==="picking"&&s.result){const r=s.result;
+    if(r.outcome==="draw") return SFX.play("boing");
+    if(r.end&&r.finalLoser) return SFX.play(r.finalLoser===pid?"lose":"win");
+    if(r.losers&&r.losers.indexOf(pid)>=0) return SFX.play("uhoh");
+    return SFX.play("reveal")}
+  if(s.phase==="picking"&&s.picked.length>p.picked.length) SFX.play("click");
+}
 
 /* name */
 function askName(){ $("nameInput").value=myName; $("modal").hidden=false; setTimeout(()=>$("nameInput").focus(),50) }
@@ -332,6 +343,7 @@ function tick(){
   const t=now();
   if(S.phase==="picking"){
     const left=Math.max(0,S.endsAt-t); sec.textContent=Math.ceil(left/1000); lb.textContent="giây";
+    const sl=Math.ceil(left/1000); if(left>0&&sl<=5&&sl!==tick.ls&&(!S.players||S.players.includes(pid))){tick.ls=sl; if(window.SFX) SFX.play("tick")}
     bar.style.strokeDashoffset=C*(1-left/S.roundMs); if(left>0&&left<=5000) ring.classList.add("hurry");
     const k="closed"+S.roundNo; if(left===0&&tick.k!==k){tick.k=k; render()}
   }else if(S.phase==="result"){

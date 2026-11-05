@@ -193,6 +193,7 @@ h2{font-family:var(--f-display);font-weight:800;font-size:22px;margin:0;line-hei
 <div class="toast" id="toast" hidden></div>
 
 <script src="/socket.io/socket.io.js"></script>
+<script src="/sfx.js"></script>
 <script>
 (function(){
 var COLORS=["Đỏ","Xanh dương","Vàng","Xanh lá"], CV=["var(--c0)","var(--c1)","var(--c2)","var(--c3)"], TV=["var(--t0)","var(--t1)","var(--t2)","var(--t3)"];
@@ -227,7 +228,17 @@ var socket=io("/ca-ngua");
 function join(){socket.emit("join",{room:roomId,pid:pid,name:myName,token:store.get("ott_admin")||""})}
 socket.on("connect",function(){connected=true; if(myName) join(); $("roomBtn").classList.remove("off")});
 socket.on("disconnect",function(){connected=false; $("roomBtn").classList.add("off"); $("hint").textContent="Mất kết nối, đang thử lại…"});
-socket.on("state",function(st){S=st; offset=st.now-Date.now(); render()});
+socket.on("state",function(st){var prev=S; S=st; offset=st.now-Date.now(); try{cnSfx(prev,st)}catch(e){} render()});
+function cnSfx(p,s){
+  if(!window.SFX||!p) return;
+  var me=-1; for(var i=0;i<4;i++){var x=s.seats[i]; if(x&&!x.bot&&x.pid===pid) me=i}
+  if(s.phase==="playing"&&p.phase!=="playing") return SFX.play("go");
+  if(s.phase==="over"&&p.phase==="playing") return SFX.play(s.ranking[0]===me?"win":me>=0?"lose":"end");
+  if(s.phase!=="playing") return;
+  if(s.rolled&&(!p.rolled||p.turn!==s.turn)) SFX.play("dice");
+  if(s.last&&(!p.last||p.last.n!==s.last.n)) setTimeout(function(){SFX.play(s.last.kick?"boom":s.last.to>50?"home":"hop")},120);
+  if(me>=0&&s.turn===me&&!s.rolled&&(p.turn!==me||p.rolled)) setTimeout(function(){SFX.play("turn")},250);
+}
 
 function askName(){$("nameInput").value=myName; $("modal").hidden=false; setTimeout(function(){$("nameInput").focus()},50)}
 $("nameForm").addEventListener("submit",function(e){e.preventDefault(); var v=$("nameInput").value.trim().slice(0,24); if(!v) return;
@@ -429,6 +440,7 @@ function renderPanel(){
 function tick(){
   if(!S||S.phase!=="playing"||!S.deadline){$("tfill").style.width="0"; return}
   var total=(S.rules.turnSec||20)*1000, left=Math.max(0,S.deadline-now());
+  var sl=Math.ceil(left/1000); if(S.turn===mySeat()&&left>0&&sl<=5&&sl!==tick.ls){tick.ls=sl; if(window.SFX) SFX.play("tick")}
   $("tfill").style.width=(100*left/total)+"%";
 }
 setInterval(tick,250);

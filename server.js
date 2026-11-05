@@ -16,6 +16,7 @@ const NAV = '<a class="pill" href="/ca-ngua" title="Chơi cờ cá ngựa" style
 const INDEX = fs.readFileSync(path.join(__dirname, "index.html"), "utf8").replace('<div class="meta">', '<div class="meta">' + NAV);
 const CANGUA = fs.readFileSync(path.join(__dirname, "ca-ngua.html"));
 const BAI = fs.readFileSync(path.join(__dirname, "bai.html"));
+const SFXJS = fs.readFileSync(path.join(__dirname, "sfx.js"));
 const server = http.createServer((req, res) => {
   const p = (req.url || "/").split("?")[0];
   if (p === "/" || p === "/index.html") {
@@ -29,6 +30,10 @@ const server = http.createServer((req, res) => {
   if (p === "/bai" || p === "/bai/") {
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
     return res.end(BAI);
+  }
+  if (p === "/sfx.js") {
+    res.writeHead(200, { "Content-Type": "text/javascript; charset=utf-8" });
+    return res.end(SFXJS);
   }
   if (p === "/healthz") { res.writeHead(200); return res.end("ok"); }
   res.writeHead(404); res.end("Not found");

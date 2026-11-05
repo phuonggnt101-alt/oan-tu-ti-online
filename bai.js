@@ -108,7 +108,7 @@ function attach(io) {
     if (!r) {
       const G = GAMES[game];
       r = { key, game, id, people: new Map(), sockets: new Map(), seats: Array(G.max).fill(null), host: null,
-        stake: G.stake, admins: new Set(), phase: "lobby", st: null, timer: null, deadline: 0, bxh: new Map(), log: [], result: null, lastWinner: null, emptySince: null, roundNo: 0 };
+        stake: G.stake, admins: new Set(), queue: [], phase: "lobby", st: null, timer: null, deadline: 0, bxh: new Map(), log: [], result: null, lastWinner: null, emptySince: null, roundNo: 0 };
       rooms.set(key, r);
     }
     return r;
@@ -140,6 +140,7 @@ function attach(io) {
       bxh: [...room.bxh.entries()].map(([p, v]) => ({ pid: p, name: nameOf(room, p), total: v })).sort((a, b) => b.total - a.total),
       spectators: [...room.people.keys()].filter((p) => on.has(p) && !room.seats.includes(p)).map((p) => nameOf(room, p)),
       log: room.log.slice(-25), result: room.result,
+      queue: room.queue.map((p) => nameOf(room, p)), queuePos: room.queue.indexOf(pid),
     };
     if (!st) return base;
     const show = room.phase === "result";
@@ -157,8 +158,20 @@ function attach(io) {
   const seatPid = (room, s) => room.seats[s];
   const nextIn = (order, s) => order[(order.indexOf(s) + 1) % order.length];
 
+  // Người trong hàng chờ được ngồi vào ghế trống khi ván kết thúc / ván mới bắt đầu
+  function seatQueue(room) {
+    const on = online(room);
+    room.queue = room.queue.filter((p) => on.has(p) && !room.seats.includes(p));
+    while (room.queue.length) {
+      const i = room.seats.indexOf(null); if (i < 0) break;
+      const p = room.queue.shift(); room.seats[i] = p;
+      log(room, nameOf(room, p) + " từ hàng chờ vào ghế " + (i + 1) + ".");
+    }
+  }
+
   // ---------- START ----------
   function start(room) {
+    seatQueue(room);
     const order = room.seats.map((p, i) => (p ? i : -1)).filter((i) => i >= 0);
     const G = GAMES[room.game];
     if (order.length < G.min) return;
@@ -392,6 +405,7 @@ function attach(io) {
     room.phase = "result"; clearTimeout(room.timer); room.deadline = 0;
     room.lastWinnerSeat = rank[0];
     room.result = { winner: P(rank[0]), rows, net };
+    seatQueue(room);
     log(room, "🏆 " + nameOf(room, P(rank[0])) + " nhất ván " + room.roundNo + ".");
     broadcast(room);
   }
@@ -402,6 +416,7 @@ function attach(io) {
     room.lastWinnerSeat = winnerSeat;
     const w = seatPid(room, winnerSeat);
     room.result = { winner: w, rows, net: deltas };
+    seatQueue(room);
     log(room, "🏆 " + nameOf(room, w) + " thắng ván " + room.roundNo + ".");
     broadcast(room);
   }
@@ -426,6 +441,12 @@ function attach(io) {
     });
     socket.on("rename", (n) => { if (!room) return; room.people.set(pid, { name: String(n || "").trim().slice(0, 24) || "Người chơi" }); broadcast(room); });
     socket.on("sit", (i) => { if (!room || room.phase === "playing" || !Number.isInteger(i) || i < 0 || i >= room.seats.length || room.seats[i]) return; const c = mySeat(); if (c >= 0) room.seats[c] = null; room.seats[i] = pid; broadcast(room); });
+    socket.on("queue", (on) => {
+      if (!room || room.phase === "lobby" || mySeat() >= 0) return;
+      room.queue = room.queue.filter((p) => p !== pid);
+      if (on) { room.queue.push(pid); if (room.phase === "result") seatQueue(room); }
+      broadcast(room);
+    });
     socket.on("stand", () => { if (!room || room.phase === "playing") return; const c = mySeat(); if (c >= 0) { room.seats[c] = null; broadcast(room); } });
     socket.on("adminLogin", (m = {}) => {
       const r = admin.login(socket.handshake.address + "|" + socket.id, String(m.user || ""), String(m.pass || ""));
@@ -470,6 +491,7 @@ function attach(io) {
       if (!room) return;
       room.sockets.delete(socket.id);
       if (!room.sockets.size) room.emptySince = Date.now();
+      if (!online(room).has(pid)) room.queue = room.queue.filter((p) => p !== pid);
       if (room.phase !== "playing" && !online(room).has(pid)) { const c = mySeat(); if (c >= 0) room.seats[c] = null; }
       fixHost(room); broadcast(room);
     });
