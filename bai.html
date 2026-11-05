@@ -578,7 +578,7 @@ function renderSide(){
   S_.bxh.forEach(function(b,i){var li=el("li"); li.append(el("span","n",String(i+1)),el("span","nm",b.name+(b.pid===pid?" (bạn)":"")),el("span","amt "+(b.total>0?"p":b.total<0?"m":""),money(b.total))); ul.appendChild(li)});
   var lg=$("log"); lg.textContent=""; S_.log.slice().reverse().forEach(function(x){lg.appendChild(el("li",null,x))});
 }
-var hostEndArm=0;
+var hostEndArm=0, hostRsArm=0;
 function render(){
   if(!S_) return;
   if(S_.roundNo!==lastRound){peek={}; lastRound=S_.roundNo}
@@ -586,7 +586,8 @@ function render(){
   $("lobby").hidden=!lobby; $("table").hidden=lobby||!S_.t;
   if(lobby){renderLobby(); $("mePanel").hidden=true}
   else if(S_.t){renderTable(); renderMe();
-    if(S_.phase==="playing"&&isHost()){var a=$("acts"); var hb=el("button","btn sm ghost",Date.now()-hostEndArm<4000?"Bấm lần nữa để huỷ ván":"Huỷ ván"); hb.onclick=function(){if(Date.now()-hostEndArm<4000){hostEndArm=0; socket.emit("lobby")} else {hostEndArm=Date.now(); render()}}; if(S_.mySeat>=0) a.appendChild(hb); else {$("center").appendChild(hb)}}}
+    if(S_.phase==="playing"&&isHost()){var a=$("acts"); var hb=el("button","btn sm ghost",Date.now()-hostEndArm<4000?"Bấm lần nữa để huỷ ván":"Huỷ ván"); hb.onclick=function(){if(Date.now()-hostEndArm<4000){hostEndArm=0; socket.emit("lobby")} else {hostEndArm=Date.now(); render()}}; var rb=el("button","btn sm",Date.now()-hostRsArm<4000?"Bấm lần nữa để chia lại":"Chia lại từ đầu"); rb.onclick=function(){if(Date.now()-hostRsArm<4000){hostRsArm=0; socket.emit("restart")} else {hostRsArm=Date.now(); render(); setTimeout(render,4100)}};
+    if(S_.mySeat>=0){a.appendChild(rb); a.appendChild(hb)} else {$("center").appendChild(rb); $("center").appendChild(hb)}}}
   renderQueue(); renderResult(); renderSide(); tick();
 }
 function renderQueue(){

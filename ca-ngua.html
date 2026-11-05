@@ -175,6 +175,7 @@ h2{font-family:var(--f-display);font-weight:800;font-size:22px;margin:0;line-hei
         <div class="tbar" id="tbar"><span id="tfill"></span></div>
         <p class="hint" id="hint">…</p>
         <button class="btn" id="rollBtn" disabled>Gieo xúc xắc</button>
+        <button class="btn sm" id="restartBtn" hidden>Chơi lại từ đầu</button>
         <button class="btn sm ghost" id="endBtn" hidden>Kết thúc ván</button>
       </div>
       <div class="box"><h3 class="secT">Người chơi</h3><ul class="plist" id="plist"></ul></div>
@@ -272,7 +273,13 @@ $("adminBtn").addEventListener("click",function(){
 $("adminCancel").addEventListener("click",function(){$("adminModal").hidden=true});
 $("adminForm").addEventListener("submit",function(e){e.preventDefault(); socket.emit("adminLogin",{user:$("adminUser").value.trim(),pass:$("adminPass").value})});
 socket.on("adminResult",function(r){if(r.ok){store.set("ott_admin",r.token); $("adminModal").hidden=true; $("adminPass").value=""; toast("Đăng nhập thành công, bạn là chủ phòng")} else $("adminErr").textContent=r.err});
-var endArmed=0;
+var endArmed=0, rsArmed=0;
+$("restartBtn").addEventListener("click",function(){
+  var b=$("restartBtn");
+  if(S&&S.phase==="over"||Date.now()-rsArmed<4000){rsArmed=0; b.textContent="Chơi lại từ đầu"; socket.emit("restart"); return}
+  rsArmed=Date.now(); b.textContent="Bấm lần nữa để chơi lại";
+  setTimeout(function(){if(rsArmed&&Date.now()-rsArmed>=4000){rsArmed=0; b.textContent="Chơi lại từ đầu"}},4100);
+});
 $("endBtn").addEventListener("click",function(){
   var b=$("endBtn");
   if(Date.now()-endArmed<4000){endArmed=0; b.textContent="Kết thúc ván"; socket.emit("lobby"); return}
@@ -431,6 +438,7 @@ function renderPanel(){
   $("rollBtn").disabled=!(S.phase==="playing"&&seat===me&&!S.rolled&&connected);
   $("rollBtn").hidden=me<0;
   $("endBtn").hidden=!(isHost()&&S.phase==="playing");
+  $("restartBtn").hidden=!(isHost()&&(S.phase==="playing"||S.phase==="over"));
   renderDie();
 
   var pl=$("plist"); pl.textContent="";

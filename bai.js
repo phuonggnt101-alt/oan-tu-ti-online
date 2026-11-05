@@ -460,6 +460,13 @@ function attach(io) {
     socket.on("stake", (v) => { if (!isHost() || room.phase === "playing") return; const n = Math.round(Number(v)); if (n >= 0 && n <= 1e9) { room.stake = n; broadcast(room); } });
     socket.on("start", () => { if (!isHost() || room.phase === "playing") return; start(room); });
     socket.on("lobby", () => { if (!isHost()) return; if (room.phase === "playing") { clearTimeout(room.timer); log(room, "Chủ phòng huỷ ván " + room.roundNo + ", không tính tiền."); if (room.game === "bacay" && room.st?.paid) { const back = {}; for (const p in room.st.paid) back[p] = -room.st.paid[p]; applyDeltas(room, back); } } room.phase = "lobby"; room.st = null; room.result = null; room.deadline = 0; broadcast(room); });
+    socket.on("restart", () => {
+      if (!isHost() || room.phase !== "playing") return;
+      clearTimeout(room.timer);
+      log(room, "Chủ phòng chia lại từ đầu, ván " + room.roundNo + " không tính tiền.");
+      if (room.game === "bacay" && room.st?.paid) { const back = {}; for (const p in room.st.paid) back[p] = -room.st.paid[p]; applyDeltas(room, back); }
+      room.phase = "lobby"; room.st = null; room.result = null; start(room);
+    });
     socket.on("resetBxh", () => { if (!isHost() || room.phase === "playing") return; room.bxh.clear(); log(room, "Chủ phòng đã đặt lại bảng xếp hạng."); broadcast(room); });
 
     socket.on("act", (a = {}) => {

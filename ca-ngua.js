@@ -344,6 +344,7 @@ function attach(io) {
     socket.on("kick", (i) => { if (!isHost() || room.phase !== "lobby" || ![0, 1, 2, 3].includes(i)) return; room.seats[i] = null; broadcast(room); });
     socket.on("rules", (r) => { if (!isHost() || room.phase !== "lobby") return; room.rules = sanitizeRules(r); broadcast(room); });
     socket.on("start", () => { if (!isHost() || room.phase !== "lobby") return; startGame(room); });
+    socket.on("restart", () => { if (!isHost() || room.phase === "lobby") return; clearTimeout(room.timer); startGame(room); });
     socket.on("lobby", () => { if (!isHost() || room.phase === "lobby") return; clearTimeout(room.timer); room.phase = "lobby"; room.dice = null; room.legal = []; broadcast(room); });
 
     socket.on("roll", () => { if (!room || room.phase !== "playing" || mySeat() !== room.turn) return; doRoll(room); });
