@@ -175,6 +175,7 @@ function attach(io) {
     const online = onlinePids(room);
     return {
       room: room.id, now: Date.now(), me: pid, host: room.host, rules: room.rules, phase: room.phase,
+      isAdmin: room.admins.has(pid), hostLocked: [...room.admins].some((p) => online.has(p)), hostOnline: online.has(room.host), hostSeated: room.seats.some((s) => s && s.pid === room.host),
       seats: room.seats.map((s, i) => s && { pid: s.pid || null, bot: !!s.bot, name: seatName(room, i), online: s.bot || online.has(s.pid) }),
       spectators: [...room.people.entries()].filter(([k]) => online.has(k) && !room.seats.some((s) => s && s.pid === k)).map(([k, v]) => ({ pid: k, name: v.name })),
       turn: room.turn, horses: room.horses, dice: room.dice, rolled: room.rolled, legal: room.legal, streak: room.streak,
@@ -311,6 +312,19 @@ function attach(io) {
     });
     socket.on("rename", (name) => { if (!room) return; room.people.set(pid, { name: String(name || "").trim().slice(0, 24) || "Người chơi" }); broadcast(room); });
 
+    socket.on("adminLogin", (m = {}) => {
+      const r = admin.login(socket.handshake.address + "|" + socket.id, String(m.user || ""), String(m.pass || ""));
+      socket.emit("adminResult", r);
+      if (r.ok && room) { room.admins.add(pid); fixHost(room); broadcast(room); }
+    });
+    socket.on("adminLogout", () => { if (!room) return; room.admins.delete(pid); fixHost(room); broadcast(room); });
+    socket.on("claimHost", () => {
+      if (!room || room.host === pid || mySeat() < 0) return;
+      const on = onlinePids(room);
+      if ([...room.admins].some((p) => on.has(p))) return;
+      if (on.has(room.host) && room.seats.some((s) => s && s.pid === room.host)) return;
+      room.host = pid; broadcast(room);
+    });
     socket.on("sit", (i) => {
       if (!room || room.phase !== "lobby" || ![0, 1, 2, 3].includes(i) || room.seats[i]) return;
       const cur = mySeat(); if (cur >= 0) room.seats[cur] = null;

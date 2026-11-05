@@ -134,6 +134,7 @@ h2{font-family:var(--f-display);font-weight:800;font-size:22px;margin:0;line-hei
       <a class="pill" href="/">✊ Oẳn tù tì</a>
       <a class="pill" href="/bai">🃏 Đánh bài</a>
       <button class="pill" id="roomBtn" title="Sao chép link mời"><span class="dot"></span><span id="roomLb">Phòng chung</span> · Mời bạn</button>
+      <button class="pill" id="adminBtn" title="Đăng nhập tài khoản chủ phòng">🔑 Chủ phòng</button>
       <button class="pill" id="nameBtn" title="Đổi tên">👤 <span id="nameLb">Bạn</span></button>
     </div>
   </header>
@@ -188,6 +189,16 @@ h2{font-family:var(--f-display);font-weight:800;font-size:22px;margin:0;line-hei
     <p class="muted" style="margin:0">Tên sẽ hiện cho mọi người trong phòng.</p>
     <input id="nameInput" maxlength="24" placeholder="Ví dụ: Hiếu" autocomplete="nickname" required>
     <button class="btn" type="submit">Vào phòng</button>
+  </form>
+</div>
+<div class="modal" id="adminModal" hidden>
+  <form class="box" id="adminForm" autocomplete="on">
+    <h2 style="font-size:26px">Tài khoản chủ phòng</h2>
+    <p class="muted" style="margin:0">Đăng nhập thì bạn luôn là chủ phòng ở mọi bàn bạn vào.</p>
+    <input id="adminUser" placeholder="Tài khoản" autocomplete="username" required>
+    <input id="adminPass" type="password" placeholder="Mật khẩu" autocomplete="current-password" required>
+    <p id="adminErr" style="margin:0;color:var(--lose);font-weight:600"></p>
+    <div style="display:flex;gap:10px"><button class="btn" type="submit">Đăng nhập</button><button class="btn ghost" type="button" id="adminCancel">Huỷ</button></div>
   </form>
 </div>
 <div class="toast" id="toast" hidden></div>
@@ -254,6 +265,13 @@ function toast(t){var el=$("toast"); el.textContent=t; el.hidden=false; clearTim
 $("rollBtn").addEventListener("click",function(){socket.emit("roll")});
 document.addEventListener("keydown",function(e){if(e.code==="Space"&&!$("rollBtn").disabled&&document.activeElement.tagName!=="INPUT"){e.preventDefault(); socket.emit("roll")}});
 $("startBtn").addEventListener("click",function(){socket.emit("start")});
+function paintAdmin(){var on=!!(S&&S.isAdmin); $("adminBtn").textContent=on?"🔑 Đã đăng nhập":"🔑 Chủ phòng"}
+$("adminBtn").addEventListener("click",function(){
+  if(S&&S.isAdmin){store.set("ott_admin",""); socket.emit("adminLogout"); toast("Đã đăng xuất tài khoản chủ phòng"); return}
+  $("adminErr").textContent=""; $("adminModal").hidden=false; setTimeout(function(){$("adminUser").focus()},50)});
+$("adminCancel").addEventListener("click",function(){$("adminModal").hidden=true});
+$("adminForm").addEventListener("submit",function(e){e.preventDefault(); socket.emit("adminLogin",{user:$("adminUser").value.trim(),pass:$("adminPass").value})});
+socket.on("adminResult",function(r){if(r.ok){store.set("ott_admin",r.token); $("adminModal").hidden=true; $("adminPass").value=""; toast("Đăng nhập thành công, bạn là chủ phòng")} else $("adminErr").textContent=r.err});
 var endArmed=0;
 $("endBtn").addEventListener("click",function(){
   var b=$("endBtn");
@@ -321,6 +339,8 @@ function renderLobby(){
   var filled=S.seats.filter(Boolean).length;
   $("startBtn").hidden=!host; $("startBtn").disabled=filled<2;
   $("startHint").textContent=host?(filled<2?"Cần ít nhất 2 ghế có người hoặc máy.":filled+" người chơi đã sẵn sàng."):"Chờ chủ phòng ("+hostName()+") bắt đầu.";
+  if(!host&&me>=0&&!S.hostLocked&&(!S.hostOnline||!S.hostSeated)){var cb=el("button","btn sm","Nhận chủ phòng"); cb.style.marginLeft="8px"; cb.onclick=function(){socket.emit("claimHost")}; $("startHint").appendChild(cb)}
+  paintAdmin();
   $("specs").textContent=S.spectators.length?"Đang xem: "+S.spectators.map(function(x){return x.name}).join(", "):"";
   renderRules();
 }
