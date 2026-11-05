@@ -127,6 +127,7 @@ function attach(io) {
     const on = online(room);
     const base = {
       game: room.game, gameName: GAMES[room.game].name, unit: GAMES[room.game].unit, room: room.id, me: pid, host: room.host,
+      hostName: nameOf(room, room.host), hostSeated: room.seats.includes(room.host), hostOnline: on.has(room.host),
       phase: room.phase, stake: room.stake, now: Date.now(), deadline: room.deadline, mySeat, roundNo: room.roundNo,
       seats: room.seats.map((p) => p && { pid: p, name: nameOf(room, p), online: on.has(p) }),
       bxh: [...room.bxh.entries()].map(([p, v]) => ({ pid: p, name: nameOf(room, p), total: v })).sort((a, b) => b.total - a.total),
@@ -418,6 +419,8 @@ function attach(io) {
     socket.on("rename", (n) => { if (!room) return; room.people.set(pid, { name: String(n || "").trim().slice(0, 24) || "Người chơi" }); broadcast(room); });
     socket.on("sit", (i) => { if (!room || room.phase === "playing" || !Number.isInteger(i) || i < 0 || i >= room.seats.length || room.seats[i]) return; const c = mySeat(); if (c >= 0) room.seats[c] = null; room.seats[i] = pid; broadcast(room); });
     socket.on("stand", () => { if (!room || room.phase === "playing") return; const c = mySeat(); if (c >= 0) { room.seats[c] = null; broadcast(room); } });
+    socket.on("giveHost", (p) => { if (!isHost() || p === pid || !online(room).has(p)) return; room.host = p; log(room, nameOf(room, pid) + " nhường chủ phòng cho " + nameOf(room, p) + "."); broadcast(room); });
+    socket.on("claimHost", () => { if (!room || room.host === pid || !room.seats.includes(pid)) return; if (online(room).has(room.host) && room.seats.includes(room.host)) return; room.host = pid; log(room, nameOf(room, pid) + " nhận làm chủ phòng."); broadcast(room); });
     socket.on("kick", (i) => { if (!isHost() || room.phase === "playing" || !room.seats[i]) return; room.seats[i] = null; broadcast(room); });
     socket.on("stake", (v) => { if (!isHost() || room.phase === "playing") return; const n = Math.round(Number(v)); if (n >= 0 && n <= 1e9) { room.stake = n; broadcast(room); } });
     socket.on("start", () => { if (!isHost() || room.phase === "playing") return; start(room); });

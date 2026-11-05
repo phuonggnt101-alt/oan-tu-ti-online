@@ -145,6 +145,21 @@ p{margin:0}
 .modal .box{width:min(400px,100%);padding:24px;display:flex;flex-direction:column;gap:14px}
 .modal input{font:inherit;font-size:18px;font-weight:600;padding:12px 14px;border:3px solid var(--ink);border-radius:12px;background:var(--bg);color:var(--ink);width:100%}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--card);padding:10px 18px;border-radius:999px;font-weight:600;z-index:60;max-width:calc(100% - 32px);text-align:center}
+/* cute deck */
+.c .f{display:none}
+body.cute .c{background:#FFF6FA;border:2px solid #F7A8C8;border-radius:11px;color:#7B61C4;box-shadow:0 2px 0 #F7A8C8}
+body.cute .c.s1{color:#2FAE86} body.cute .c.s2{color:#FF8A5B} body.cute .c.s3{color:#FF5C8A}
+body.cute .c .m{opacity:.55}
+body.cute .c.face .m{display:none}
+body.cute .c.face .f{display:grid;position:absolute;inset:0;place-items:center;font-size:24px}
+body.cute .hand .c.face .f{font-size:30px}
+body.cute .c.sm.face .f{font-size:14px}
+body.cute .c.back{background-color:#FFC4DD;background-image:radial-gradient(#fff 18%,transparent 20%),radial-gradient(#fff 18%,transparent 20%);background-size:12px 12px;background-position:0 0,6px 6px;border-color:#FF8FB8}
+body.cute .c.back::after{content:"♥";position:absolute;inset:0;display:grid;place-items:center;color:#FF5C8A;font-size:18px;text-shadow:0 0 0 #fff}
+body.cute .mini .c.back::after{display:none}
+body.cute .table{background:radial-gradient(circle at 50% 40%,#FCD3E4,#F2A2C6);color:#4A1F3D}
+body.cute .opp{background:rgba(255,255,255,.5);border-color:rgba(255,255,255,.8)}
+body.cute .hand .c.sel{box-shadow:0 0 0 3px #FF5C8A,0 2px 0 #F7A8C8}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -156,6 +171,7 @@ p{margin:0}
       <a class="pill" href="/">✊ Oẳn tù tì</a>
       <a class="pill" href="/ca-ngua">🐴 Cá ngựa</a>
       <button class="pill" id="roomBtn" hidden><span class="dot"></span><span id="roomLb">Phòng chung</span> · Mời bạn</button>
+      <button class="pill" id="deckBtn" title="Đổi kiểu bộ bài">🎀 Bài dễ thương</button>
       <button class="pill" id="nameBtn">👤 <span id="nameLb">Bạn</span></button>
     </div>
   </header>
@@ -173,6 +189,7 @@ p{margin:0}
       <!-- LOBBY -->
       <div class="box panel" id="lobby" hidden>
         <h2>Chọn chỗ ngồi</h2>
+        <div class="acts" id="hostLine"></div>
         <div class="seats" id="seats"></div>
         <p class="muted" id="specs"></p>
         <div class="stake"><label for="stakeIn"><b id="stakeLb">Tiền mỗi lá</b></label><input id="stakeIn" type="number" min="0" step="500" inputmode="numeric"><span class="muted" id="stakeNote"></span></div>
@@ -232,13 +249,18 @@ function toast(t){var x=$("toast"); x.textContent=t; x.hidden=false; clearTimeou
 
 /* ----- card helpers (same encoding as server) ----- */
 var RN=["A","2","3","4","5","6","7","8","9","10","J","Q","K"], SN=["♠","♣","♦","♥"];
+var FACE={0:"💖",10:"⭐",11:"🎀",12:"👑"};
+var cute=store.get("ott_deck")!=="classic";
+function applyDeck(){document.body.classList.toggle("cute",cute); $("deckBtn").textContent=cute?"🂠 Bài cổ điển":"🎀 Bài dễ thương"}
+applyDeck();
+$("deckBtn").addEventListener("click",function(){cute=!cute; store.set("ott_deck",cute?"cute":"classic"); applyDeck()});
 function R(c){return c>>2} function S(c){return c&3}
 function sv(c){return (R(c)+11)%13}
 function cardEl(c,opts){opts=opts||{};
   var d=el("div","c"+(opts.sm?" sm":""));
   if(c==null){d.classList.add("back"); return d}
-  if(S(c)>=2) d.classList.add("red");
-  d.appendChild(el("span","r",RN[R(c)])); d.appendChild(el("span","m",SN[S(c)])); d.appendChild(el("span","s",SN[S(c)]));
+  if(S(c)>=2) d.classList.add("red"); d.classList.add("s"+S(c)); if(FACE[R(c)]) d.classList.add("face");
+  d.appendChild(el("span","r",RN[R(c)])); d.appendChild(el("span","m",SN[S(c)])); d.appendChild(el("span","s",SN[S(c)])); if(FACE[R(c)]) d.appendChild(el("span","f",FACE[R(c)]));
   d.title=RN[R(c)]+SN[S(c)]; return d}
 function samCombo(cards){var n=cards.length; if(!n) return null; var v=cards.map(sv).sort(function(a,b){return a-b});
   var same=v.every(function(x){return x===v[0]});
@@ -313,12 +335,16 @@ function renderLobby(){
     c.appendChild(el("div","nm",s?(s.name+(s.pid===pid?" (bạn)":"")+(s.pid===S_.host?" 👑":"")):"Trống"));
     if(!s){var b=el("button","btn sm","Ngồi đây"); b.onclick=function(){socket.emit("sit",i)}; c.appendChild(b)}
     else if(s.pid===pid){var b2=el("button","btn sm ghost","Rời ghế"); b2.onclick=function(){socket.emit("stand")}; c.appendChild(b2)}
-    else if(host){var b3=el("button","btn sm ghost","Mời ra"); b3.onclick=function(){socket.emit("kick",i)}; c.appendChild(b3)}
+    else if(host){var ac=el("div","acts"); var b3=el("button","btn sm ghost","Mời ra"); b3.onclick=function(){socket.emit("kick",i)}; ac.appendChild(b3); if(s.online){var gh=el("button","btn sm","Nhường 👑"); gh.onclick=function(){socket.emit("giveHost",s.pid)}; ac.appendChild(gh)} c.appendChild(ac)}
     box.appendChild(c)});
   $("specs").textContent=S_.spectators.length?"Đang xem: "+S_.spectators.join(", "):"";
   $("stakeLb").textContent=GAME==="sam"?"Tiền mỗi lá":"Tiền mỗi ván";
   var inp=$("stakeIn"); if(document.activeElement!==inp) inp.value=S_.stake; inp.disabled=!host;
-  $("stakeNote").textContent=host?"":"Chủ phòng đặt mức tiền.";
+  $("stakeNote").textContent=host?"":"Chủ phòng ("+S_.hostName+") đặt mức tiền.";
+  var hl=$("hostLine"); hl.textContent=""; hl.appendChild(el("span",null,"👑 Chủ phòng: "+(host?"bạn":S_.hostName)+(S_.hostOnline?"":" (đang vắng)")));
+  if(host) hl.appendChild(el("span","muted","Bấm “Nhường 👑” ở ghế người khác để chuyển quyền."));
+  else if(mine>=0&&(!S_.hostOnline||!S_.hostSeated)){var cl=el("button","btn sm","Nhận chủ phòng"); cl.onclick=function(){socket.emit("claimHost")}; hl.appendChild(cl)}
+  else hl.appendChild(el("span","muted","Muốn làm chủ phòng thì nhờ "+S_.hostName+" bấm “Nhường 👑” ở ghế của bạn."));
   var q=$("quick"); q.textContent=""; if(host) QUICK[GAME].forEach(function(v){var b=el("button","btn sm ghost",v.toLocaleString("vi-VN")); b.onclick=function(){socket.emit("stake",v)}; q.appendChild(b)});
   var ul=$("rules"); ul.textContent=""; RULES[GAME].forEach(function(t){var li=el("li"); li.innerHTML=t; ul.appendChild(li)});
   var n=S_.seats.filter(Boolean).length, min=2;
