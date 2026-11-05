@@ -211,7 +211,7 @@ body.cute .hand .c.sel{box-shadow:0 0 0 3px #FF5C8A,0 2px 0 #F7A8C8}
   <section class="pick" id="picker" hidden>
     <a class="box gcard" href="/bai?game=sam"><div class="ic">🂡</div><h2>Sâm lốc</h2><ul><li>2–5 người, mỗi người 10 lá</li><li>Hết bài trước thì thắng</li><li>Thua trả theo số lá còn lại</li></ul><span class="btn sm">Vào chơi</span></a>
     <a class="box gcard" href="/bai?game=phom"><div class="ic">🂮</div><h2>Phỏm</h2><ul><li>2–4 người, 9 lá (người đầu 10 lá)</li><li>Ăn, bốc, ghép phỏm, ít điểm nhất thắng</li><li>Tính tiền theo ván</li></ul><span class="btn sm">Vào chơi</span></a>
-    <a class="box gcard" href="/bai?game=bacay"><div class="ic">🂫</div><h2>Ba cây</h2><ul><li>2–8 người, mỗi người 3 lá</li><li>Góp tiền trước, chia nhất 50% · nhì 30% · ba 20%</li><li>Ba tây là to nhất</li></ul><span class="btn sm">Vào chơi</span></a>
+    <a class="box gcard" href="/bai?game=bacay"><div class="ic">🂫</div><h2>Ba cây</h2><ul><li>2–8 người, mỗi người 3 lá</li><li>Góp tiền trước, nhất ăn tất</li><li>Kiểu miền Bắc hoặc bài cào miền Nam</li></ul><span class="btn sm">Vào chơi</span></a>
   </section>
 
   <section class="main" id="room" hidden>
@@ -224,6 +224,7 @@ body.cute .hand .c.sel{box-shadow:0 0 0 3px #FF5C8A,0 2px 0 #F7A8C8}
         <p class="muted" id="specs"></p>
         <div class="stake"><label for="stakeIn"><b id="stakeLb">Tiền mỗi lá</b></label><input id="stakeIn" type="number" min="0" step="500" inputmode="numeric"><span class="muted" id="stakeNote"></span></div>
         <div class="stake" id="quick"></div>
+        <div class="stake" id="bcRow" hidden><label for="bcStyle"><b>Kiểu bài</b></label><select id="bcStyle"><option value="bac">Ba cây miền Bắc (36 lá A–9)</option><option value="nam">Bài cào miền Nam (52 lá)</option></select><label for="bcPay"><b>Chia tiền</b></label><select id="bcPay"><option value="all">Nhất ăn tất</option><option value="532">Nhất 50 · Nhì 30 · Ba 20</option></select></div>
         <ul class="rulesList" id="rules"></ul>
         <div class="acts"><button class="btn" id="startBtn">Chia bài</button><button class="btn sm ghost" id="resetBtn">Đặt lại bảng xếp hạng</button><span class="muted" id="startHint"></span></div>
       </div>
@@ -419,7 +420,7 @@ function seatName(s){var x=S_.seats[s]; return x?x.name:"Ghế "+(s+1)}
 var RULES={
   sam:["Thứ tự: 3 < 4 < … < K < A < 2 (heo), không xét chất.","Đánh đơn, đôi, sám (3 lá), tứ quý hoặc sảnh từ 3 lá (sảnh không có 2). Chặn bằng bộ cùng kiểu, cùng số lá, lớn hơn.","Tứ quý chặt được heo: người bị chặt trả <b>10 lá</b> cho người chặt.","Thua trả <b>số lá còn lại</b> × tiền/lá. Còn heo trên tay: mỗi con tính thêm <b>5 lá</b> (thối heo).","Chưa đánh được lá nào (cóng): trả <b>20 lá</b>.","Báo Sâm trong 10 giây đầu: đánh hết mà không ai chặn được thì mỗi người trả <b>20 lá</b>; bị chặn thì đền mỗi người <b>20 lá</b>.","Mỗi lượt 20 giây. Hết giờ: đang cầm cái thì tự đánh lá nhỏ nhất, không thì tự bỏ lượt."],
   phom:["Chia 9 lá, người đánh đầu 10 lá. Mỗi lượt: ăn lá vừa đánh của người trước (nếu tạo được phỏm) hoặc bốc, rồi đánh 1 lá.","Phỏm: 3–4 lá cùng số, hoặc từ 3 lá liên tiếp cùng chất (A thấp, không vòng K–A).","Lá đã ăn phải nằm trong phỏm, mỗi phỏm chỉ chứa 1 lá ăn; không được đánh lá đã ăn.","Mỗi người đánh đủ 4 lá thì hạ phỏm và tự gửi bài vào phỏm người khác. Điểm rác thấp nhất là Nhất.","Trả cho Nhất: Nhì <b>1</b> · Ba <b>2</b> · Bét <b>3</b> · Móm (không có phỏm) <b>4</b> ván.","Ù (cả bài thành phỏm, dư tối đa 1 lá): mỗi người trả <b>5</b> ván. Bị ăn cây chốt: trả người ăn thêm <b>4</b> ván.","Mỗi lượt 20 giây, hết giờ tự bốc và tự đánh lá rác lớn nhất."],
-  bacay:["Mỗi người góp trước <b>tiền/ván</b>. Chia 3 lá, cộng điểm lấy hàng đơn vị (10, J, Q, K = 0).","<b>Ba tây</b> (3 lá J, Q, K) to nhất, sau đó 9 nút xuống 0 nút.","Bằng điểm thì so lá cao nhất theo chất: Rô > Cơ > Bích > Tép.","Chia thưởng tổng tiền góp: Nhất <b>50%</b> · Nhì <b>30%</b> · Ba <b>20%</b> (bàn 2 người thì Nhất ăn hết).","Bấm Lật bài khi sẵn sàng; sau 20 giây bài tự lật."]
+  bacay:[]
 };
 var QUICK={sam:[500,1000,2000,5000],phom:[2000,5000,10000,20000],bacay:[5000,10000,20000,50000]};
 function renderLobby(){
@@ -442,12 +443,15 @@ function renderLobby(){
   else if(mine>=0&&(!S_.hostOnline||!S_.hostSeated)){var cl=el("button","btn sm","Nhận chủ phòng"); cl.onclick=function(){socket.emit("claimHost")}; hl.appendChild(cl)}
   else hl.appendChild(el("span","muted","Muốn làm chủ phòng thì nhờ "+S_.hostName+" bấm “Nhường 👑” ở ghế của bạn."));
   var q=$("quick"); q.textContent=""; if(host) QUICK[GAME].forEach(function(v){var b=el("button","btn sm ghost",v.toLocaleString("vi-VN")); b.onclick=function(){socket.emit("stake",v)}; q.appendChild(b)});
+  $("bcRow").hidden=GAME!=="bacay"; if(GAME==="bacay"){var bs=$("bcStyle"), bpy=$("bcPay"), br=S_.bcRules||{style:"bac",pay:"all"}; if(document.activeElement!==bs) bs.value=br.style; if(document.activeElement!==bpy) bpy.value=br.pay; bs.disabled=bpy.disabled=!host; RULES.bacay=bcRulesText(br)}
   var ul=$("rules"); ul.textContent=""; RULES[GAME].forEach(function(t){var li=el("li"); li.innerHTML=t; ul.appendChild(li)});
   var n=S_.seats.filter(Boolean).length, min=2;
   $("startBtn").hidden=!host; $("startBtn").disabled=n<min; $("resetBtn").hidden=!host;
   $("startHint").textContent=host?(n<min?"Cần ít nhất 2 người ngồi.":n+" người sẵn sàng."):"Chờ chủ phòng chia bài.";
 }
 $("stakeIn").addEventListener("change",function(){socket.emit("stake",Number($("stakeIn").value))});
+function sendBc(){socket.emit("bcRules",{style:$("bcStyle").value,pay:$("bcPay").value})}
+$("bcStyle").addEventListener("change",sendBc); $("bcPay").addEventListener("change",sendBc);
 $("startBtn").addEventListener("click",function(){socket.emit("start")});
 var resetArm=0; $("resetBtn").addEventListener("click",function(){if(Date.now()-resetArm<4000){resetArm=0; $("resetBtn").textContent="Đặt lại bảng xếp hạng"; socket.emit("resetBxh")} else {resetArm=Date.now(); $("resetBtn").textContent="Bấm lần nữa để xoá BXH"}});
 
@@ -459,7 +463,15 @@ function oppEl(s,extra){var t=S_.t, p=S_.seats[s]; var d=el("div","opp"+(t.turn=
 function badge(txt,red){return el("span","badge"+(red?" r":""),txt)}
 function backs(n){var m=el("div","mini"); for(var i=0;i<n;i++) m.appendChild(cardEl(null)); return m}
 
-function bcText(h){if(h.every(function(c){return R(c)>=10})) return "Ba tây"; return (h.reduce(function(a,c){return a+(R(c)<9?R(c)+1:0)},0)%10)+" nút"}
+function bcText(h){var st=(S_&&S_.bcRules&&S_.bcRules.style)||"bac";
+  if(st==="nam"){if(h.every(function(c){return R(c)>=10})) return "Ba cào"; var p=h.reduce(function(a,c){return a+(R(c)<9?R(c)+1:0)},0)%10; return p?p+" nút":"Bù"}
+  var q=h.reduce(function(a,c){return a+R(c)+1},0)%10; return (q||10)+" nút"}
+function bcRulesText(br){var r=[];
+  r.push("Mỗi người góp trước <b>tiền/ván</b>, chia mỗi người 3 lá.");
+  if(br.style==="nam"){r.push("<b>Bài cào miền Nam:</b> đủ 52 lá, 10/J/Q/K tính 10 điểm. Lấy hàng đơn vị của tổng, tròn chục là <b>Bù</b> (thấp nhất)."); r.push("<b>Ba cào</b> (3 lá J, Q, K bất kỳ) thắng luôn. Không xét chất: bằng điểm là hoà.")}
+  else{r.push("<b>Ba cây miền Bắc:</b> chỉ dùng 36 lá từ A đến 9. Lấy hàng đơn vị của tổng; tròn 10 hoặc 20 tính là <b>10 nút, cao nhất</b>."); r.push("Bằng nút thì so lá to nhất theo chất <b>Rô > Cơ > Tép > Bích</b>. <b>A♦ (át cụ)</b> là lá to nhất, các lá A khác nhỏ nhất.")}
+  r.push(br.pay==="532"?"Chia tiền: Nhất <b>50%</b> · Nhì <b>30%</b> · Ba <b>20%</b> tổng tiền góp (bàn 2 người thì Nhất ăn hết).":"Chia tiền: <b>Nhất ăn tất</b> tiền góp; nhiều người cùng nhất thì chia đều.");
+  r.push("Bấm từng lá để nặn, bấm Lật bài khi sẵn sàng; sau 20 giây bài tự lật."); return r}
 function renderTable(){
   var t=S_.t, me=S_.mySeat, play=S_.phase==="playing", res=S_.phase==="result";
   var opps=$("opps"); opps.textContent="";
@@ -556,7 +568,7 @@ function renderMe(){
   if(GAME==="bacay"){
     var shown=t.shown[me]; info.textContent=shown?"Đã lật":"Bấm từng lá để nặn";
     if(play&&!shown){var sb=el("button","btn","Lật bài"); sb.onclick=function(){act({type:"show"})}; acts.appendChild(sb)}
-    if(shown||Object.keys(peek).length===3){var pts=t.myHand.reduce(function(a,c){return a+(R(c)<9?R(c)+1:0)},0)%10, bt=t.myHand.every(function(c){return R(c)>=10}); acts.appendChild(el("span","msg",bt?"Bạn có Ba tây!":"Bạn được "+pts+" nút."))}
+    if(shown||Object.keys(peek).length===3){acts.appendChild(el("span","msg","Bạn được: "+bcText(t.myHand)))}
   }
 }
 var peek={}, lastRound=-1;

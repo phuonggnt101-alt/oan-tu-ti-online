@@ -80,13 +80,19 @@ function canFitMeld(meld, c) {
 }
 
 // ================= BA CÂY =================
-const bp = (c) => (R(c) < 9 ? R(c) + 1 : 0);
-const SUIT_RANK = [1, 0, 3, 2]; // Rô > Cơ > Bích > Tép
-const bestCardKey = (cards) => Math.max(...cards.map((c) => SUIT_RANK[S(c)] * 13 + ((R(c) + 12) % 13)));
-function bacayScore(cards) {
-  const baTay = cards.every((c) => R(c) >= 10);
-  const pts = cards.reduce((s, c) => s + bp(c), 0) % 10;
-  return { baTay, pts, key: (baTay ? 10 : pts) * 1000 + bestCardKey(cards) };
+// Hai kiểu: "bac" = Ba cây miền Bắc (36 lá A–9, tròn chục = 10 nút cao nhất, bằng điểm so chất
+// Rô > Cơ > Tép > Bích, A♦ "át cụ" to nhất, các lá A khác nhỏ nhất).
+// "nam" = Bài cào miền Nam (52 lá, 10/J/Q/K = 0, bù thấp nhất, ba cào J-Q-K thắng, không xét chất).
+const SUIT_RANK = [0, 1, 3, 2]; // Bích 0 < Tép 1 < Cơ 2 < Rô 3
+const cardKeyBac = (c) => (c === 2 ? 99 : SUIT_RANK[S(c)] * 13 + R(c)); // c === 2 là A♦
+function bacayScore(cards, style = "bac") {
+  if (style === "nam") {
+    const baCao = cards.every((c) => R(c) >= 10);
+    const pts = cards.reduce((s, c) => s + (R(c) < 9 ? R(c) + 1 : 0), 0) % 10;
+    return { label: baCao ? "Ba cào" : pts === 0 ? "Bù" : pts + " nút", key: baCao ? 100 : pts };
+  }
+  const sum = cards.reduce((s, c) => s + R(c) + 1, 0) % 10, pts = sum === 0 ? 10 : sum;
+  return { label: pts + " nút", key: pts * 1000 + Math.max(...cards.map(cardKeyBac)) };
 }
 
 // ================= PHÒNG =================
@@ -108,7 +114,7 @@ function attach(io) {
     if (!r) {
       const G = GAMES[game];
       r = { key, game, id, people: new Map(), sockets: new Map(), seats: Array(G.max).fill(null), host: null,
-        stake: G.stake, admins: new Set(), queue: [], phase: "lobby", st: null, timer: null, deadline: 0, bxh: new Map(), log: [], result: null, lastWinner: null, emptySince: null, roundNo: 0 };
+        stake: G.stake, bcRules: { style: "bac", pay: "all" }, admins: new Set(), queue: [], phase: "lobby", st: null, timer: null, deadline: 0, bxh: new Map(), log: [], result: null, lastWinner: null, emptySince: null, roundNo: 0 };
       rooms.set(key, r);
     }
     return r;
@@ -135,7 +141,7 @@ function attach(io) {
       game: room.game, gameName: GAMES[room.game].name, unit: GAMES[room.game].unit, room: room.id, me: pid, host: room.host,
       isAdmin: room.admins.has(pid), hostLocked: [...room.admins].some((p) => on.has(p)),
       hostName: nameOf(room, room.host), hostSeated: room.seats.includes(room.host), hostOnline: on.has(room.host),
-      phase: room.phase, stake: room.stake, now: Date.now(), deadline: room.deadline, mySeat, roundNo: room.roundNo,
+      phase: room.phase, stake: room.stake, bcRules: room.bcRules, now: Date.now(), deadline: room.deadline, mySeat, roundNo: room.roundNo,
       seats: room.seats.map((p) => p && { pid: p, name: nameOf(room, p), online: on.has(p) }),
       bxh: [...room.bxh.entries()].map(([p, v]) => ({ pid: p, name: nameOf(room, p), total: v })).sort((a, b) => b.total - a.total),
       spectators: [...room.people.keys()].filter((p) => on.has(p) && !room.seats.includes(p)).map((p) => nameOf(room, p)),
@@ -191,7 +197,8 @@ function attach(io) {
       if (phomCheckU(room, first)) return;
       phomArm(room);
     } else {
-      for (const s of order) hands[s] = deck.splice(0, 3);
+      const dk = room.bcRules.style === "bac" ? deck.filter((c) => R(c) <= 8) : deck; // miền Bắc: bỏ 10, J, Q, K
+      for (const s of order) hands[s] = dk.splice(0, 3);
       room.st = { order, hands, shown: {}, turn: null };
       const deltas = {};
       for (const s of order) deltas[seatPid(room, s)] = -room.stake;
@@ -389,16 +396,23 @@ function attach(io) {
   function bacayFinish(room) {
     const st = room.st; if (room.phase !== "playing") return;
     const P = (s) => seatPid(room, s), n = st.order.length, pot = n * room.stake;
-    const sc = {}; for (const s of st.order) sc[s] = bacayScore(st.hands[s]);
+    const R2 = room.bcRules, sc = {}; for (const s of st.order) sc[s] = bacayScore(st.hands[s], R2.style);
     const rank = st.order.slice().sort((a, b) => sc[b].key - sc[a].key);
-    const shares = n === 2 ? [1] : [0.5, 0.3, 0.2].slice(0, Math.min(3, n)), tot = shares.reduce((a, b) => a + b, 0); // bàn 2 người: Nhất ăn hết
-    const prize = shares.map((x) => Math.floor((pot * x) / tot));
-    prize[0] += pot - prize.reduce((a, b) => a + b, 0);
+    const prize = {};
+    if (R2.pay === "532" && n > 2) {
+      const shares = [0.5, 0.3, 0.2].slice(0, Math.min(3, n)), tot = shares.reduce((a, b) => a + b, 0);
+      const pz = shares.map((x) => Math.floor((pot * x) / tot)); pz[0] += pot - pz.reduce((a, b) => a + b, 0);
+      rank.forEach((s, i) => { prize[s] = pz[i] || 0; });
+    } else { // nhất ăn tất; cùng nhất (hoà) thì chia đều
+      const top = rank.filter((s) => sc[s].key === sc[rank[0]].key), each = Math.floor(pot / top.length);
+      top.forEach((s, i) => { prize[s] = each + (i === 0 ? pot - each * top.length : 0); });
+    }
     const deltas = {}, rows = [];
     rank.forEach((s, i) => {
-      const p = P(s); const win = prize[i] || 0;
+      const p = P(s); const win = prize[s] || 0;
       deltas[p] = (deltas[p] || 0) + win;
-      rows.push((i < 3 ? ["Nhất", "Nhì", "Ba"][i] : "Hạng " + (i + 1)) + ": " + nameOf(room, p) + " · " + (sc[s].baTay ? "Ba tây" : sc[s].pts + " nút") + (win ? " · nhận " + win : ""));
+      const tie = R2.pay !== "532" && i > 0 && win > 0;
+      rows.push((tie ? "Đồng nhất" : i < 3 ? ["Nhất", "Nhì", "Ba"][i] : "Hạng " + (i + 1)) + ": " + nameOf(room, p) + " · " + sc[s].label + (win ? " · nhận " + win : ""));
     });
     applyDeltas(room, deltas);
     const net = {}; for (const s of st.order) { const p = P(s); net[p] = (st.paid[p] || 0) + (deltas[p] || 0); }
@@ -458,6 +472,7 @@ function attach(io) {
     socket.on("claimHost", () => { if (!room || room.host === pid || !room.seats.includes(pid)) return; if (online(room).has(room.host) && room.seats.includes(room.host)) return; if ([...room.admins].some((p) => online(room).has(p))) return; room.host = pid; log(room, nameOf(room, pid) + " nhận làm chủ phòng."); broadcast(room); });
     socket.on("kick", (i) => { if (!isHost() || room.phase === "playing" || !room.seats[i]) return; room.seats[i] = null; broadcast(room); });
     socket.on("stake", (v) => { if (!isHost() || room.phase === "playing") return; const n = Math.round(Number(v)); if (n >= 0 && n <= 1e9) { room.stake = n; broadcast(room); } });
+    socket.on("bcRules", (r = {}) => { if (!isHost() || room.phase === "playing") return; room.bcRules = { style: r.style === "nam" ? "nam" : "bac", pay: r.pay === "532" ? "532" : "all" }; broadcast(room); });
     socket.on("start", () => { if (!isHost() || room.phase === "playing") return; start(room); });
     socket.on("lobby", () => { if (!isHost()) return; if (room.phase === "playing") { clearTimeout(room.timer); log(room, "Chủ phòng huỷ ván " + room.roundNo + ", không tính tiền."); if (room.game === "bacay" && room.st?.paid) { const back = {}; for (const p in room.st.paid) back[p] = -room.st.paid[p]; applyDeltas(room, back); } } room.phase = "lobby"; room.st = null; room.result = null; room.deadline = 0; broadcast(room); });
     socket.on("restart", () => {
