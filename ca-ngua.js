@@ -10,15 +10,15 @@ const GATE = 50;
 const COLORS = ["Đỏ", "Xanh dương", "Vàng", "Xanh lá"];
 
 const DEFAULT_RULES = {
-  exit: "16",        // "6": chỉ gieo 6 mới xuất quân · "16": gieo 1 hoặc 6
-  bonus: "16",       // "6" | "16": gieo được số này thì được gieo thêm
+  exit: "6",         // "6": chỉ gieo 6 mới xuất quân · "16": gieo 1 hoặc 6
+  bonus: "6",        // "6" | "16": gieo được số này thì được gieo thêm
   threeSix: true,    // gieo thưởng 3 lần liên tiếp thì mất lượt
   noJump: true,      // cấm nhảy qua đầu ngựa khác (cản đường)
-  safeStart: false,  // ngựa đứng trên ô xuất quân của chính mình thì không bị đá
+  safeStart: true,   // ngựa đứng trên ô xuất quân của chính mình thì không bị đá
   kickBonus: false,  // đá được ngựa thì được gieo thêm
   home: "nhay-vao",  // "nhay-vao" | "tung-bac" | "nhay-bac" | "dem-o" — cách lên chuồng
   win: "top4",       // "top4": 4 ngựa ở bậc 3–6 · "all4": 4 ngựa vào chuồng là thắng
-  rankAll: false,    // chơi tiếp để xếp hạng nhì, ba
+  rankAll: true,     // chơi tiếp để xếp hạng nhì, ba
   turnSec: 20,       // giây cho mỗi lượt (0 = không giới hạn)
 };
 
