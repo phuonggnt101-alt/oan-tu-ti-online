@@ -255,14 +255,14 @@ var RULES=[
   {k:"noJump",t:"Cấm nhảy qua đầu ngựa",d:"Có ngựa chắn trên đường (kể cả ngựa mình) thì không được đi qua."},
   {k:"safeStart",t:"Ô xuất quân an toàn",d:"Ngựa đứng trên ô xuất quân (ô ★) của màu mình thì không bị đá, nhưng ngựa khác được đi vượt qua."},
   {k:"kickBonus",t:"Đá ngựa được gieo thêm",d:"Đá được ngựa đối thủ thì được thưởng một lượt."},
-  {k:"home",t:"Cách lên chuồng",d:"Ngựa phải dừng đúng ô cửa chuồng rồi mới lên các bậc 1–6.",o:[["tung-bac","Từng bậc"],["nhay-bac","Nhảy bậc"],["dem-o","Đếm ô"]]},
+  {k:"home",t:"Cách lên chuồng",d:"Ngựa phải dừng đúng ô cửa chuồng rồi mới lên các bậc 1–6.",o:[["nhay-vao","Vào bậc tự chọn"],["tung-bac","Từng bậc"],["nhay-bac","Nhảy bậc"],["dem-o","Đếm ô"]]},
   {k:"win",t:"Điều kiện thắng",d:"",o:[["top4","4 ngựa ở bậc 3–6"],["all4","4 ngựa vào chuồng"]]},
   {k:"rankAll",t:"Chơi tiếp để xếp hạng",d:"Có người thắng rồi vẫn chơi tiếp để tìm hạng nhì, ba."},
   {k:"turnSec",t:"Thời gian mỗi lượt",d:"Hết giờ thì máy tự gieo và tự đi giúp.",o:[["10","10 giây"],["15","15 giây"],["20","20 giây"],["30","30 giây"],["45","45 giây"],["0","Không giới hạn"]]}
 ];
-var HOME_DESC={"tung-bac":"Từng bậc: đứng ở cửa gieo 1 lên bậc 1, rồi phải gieo đúng 2, 3… 6 để lên từng bậc kế tiếp.","nhay-bac":"Nhảy bậc: gieo số n thì lên thẳng bậc n (cao hơn bậc đang đứng, không vượt ngựa khác).","dem-o":"Đếm ô: đi tiếp vào chuồng như ngoài đường, không cần dừng ở cửa, không được đi quá bậc 6."};
+var HOME_DESC={"nhay-vao":"Vào bậc tự chọn: đứng ở cửa chuồng gieo được n thì lên thẳng bậc n. Sau đó phải gieo đúng số bậc kế tiếp mới lên tiếp (đang ở 4 thì cần 5, ở 5 thì cần 6).","tung-bac":"Từng bậc: đứng ở cửa gieo 1 lên bậc 1, rồi phải gieo đúng 2, 3… 6 để lên từng bậc kế tiếp.","nhay-bac":"Nhảy bậc: gieo số n thì lên thẳng bậc n (cao hơn bậc đang đứng, không vượt ngựa khác).","dem-o":"Đếm ô: đi tiếp vào chuồng như ngoài đường, không cần dừng ở cửa, không được đi quá bậc 6."};
 var PRESETS={
-  vn:{exit:"16",bonus:"16",threeSix:true,noJump:true,safeStart:false,kickBonus:false,home:"tung-bac",win:"top4",rankAll:false},
+  vn:{exit:"16",bonus:"16",threeSix:true,noJump:true,safeStart:false,kickBonus:false,home:"nhay-vao",win:"top4",rankAll:false},
   nhanh:{exit:"16",bonus:"6",threeSix:true,noJump:false,safeStart:false,kickBonus:true,home:"dem-o",win:"all4",rankAll:false,turnSec:15},
   ludo:{exit:"6",bonus:"6",threeSix:true,noJump:false,safeStart:true,kickBonus:false,home:"dem-o",win:"all4",rankAll:true}
 };

@@ -16,7 +16,7 @@ const DEFAULT_RULES = {
   noJump: true,      // cấm nhảy qua đầu ngựa khác (cản đường)
   safeStart: false,  // ngựa đứng trên ô xuất quân của chính mình thì không bị đá
   kickBonus: false,  // đá được ngựa thì được gieo thêm
-  home: "tung-bac",  // "tung-bac" | "nhay-bac" | "dem-o" — cách lên chuồng
+  home: "nhay-vao",  // "nhay-vao" | "tung-bac" | "nhay-bac" | "dem-o" — cách lên chuồng
   win: "top4",       // "top4": 4 ngựa ở bậc 3–6 · "all4": 4 ngựa vào chuồng là thắng
   rankAll: false,    // chơi tiếp để xếp hạng nhì, ba
   turnSec: 20,       // giây cho mỗi lượt (0 = không giới hạn)
@@ -27,7 +27,7 @@ function sanitizeRules(r = {}) {
   if (["6", "16"].includes(r.exit)) out.exit = r.exit;
   if (["6", "16"].includes(r.bonus)) out.bonus = r.bonus;
   for (const k of ["threeSix", "noJump", "safeStart", "kickBonus", "rankAll"]) if (typeof r[k] === "boolean") out[k] = r[k];
-  if (["tung-bac", "nhay-bac", "dem-o"].includes(r.home)) out.home = r.home;
+  if (["nhay-vao", "tung-bac", "nhay-bac", "dem-o"].includes(r.home)) out.home = r.home;
   if (["top4", "all4"].includes(r.win)) out.win = r.win;
   if ([0, 10, 15, 20, 30, 45].includes(Number(r.turnSec))) out.turnSec = Number(r.turnSec);
   return out;
@@ -70,7 +70,7 @@ function legalMove(horses, rules, seat, h, d) {
   if (p > GATE) {
     const step = p - GATE;
     let target;
-    if (rules.home === "tung-bac") target = d === step + 1 ? step + 1 : null;
+    if (rules.home === "tung-bac" || rules.home === "nhay-vao") target = d === step + 1 ? step + 1 : null;
     else if (rules.home === "nhay-bac") target = d > step ? d : null;
     else target = step + d;
     if (!target || target > 6) return null;
