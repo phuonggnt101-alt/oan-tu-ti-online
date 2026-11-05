@@ -391,7 +391,7 @@ function attach(io) {
     const P = (s) => seatPid(room, s), n = st.order.length, pot = n * room.stake;
     const sc = {}; for (const s of st.order) sc[s] = bacayScore(st.hands[s]);
     const rank = st.order.slice().sort((a, b) => sc[b].key - sc[a].key);
-    const shares = [0.5, 0.3, 0.2].slice(0, Math.min(3, n)), tot = shares.reduce((a, b) => a + b, 0);
+    const shares = n === 2 ? [1] : [0.5, 0.3, 0.2].slice(0, Math.min(3, n)), tot = shares.reduce((a, b) => a + b, 0); // bàn 2 người: Nhất ăn hết
     const prize = shares.map((x) => Math.floor((pot * x) / tot));
     prize[0] += pot - prize.reduce((a, b) => a + b, 0);
     const deltas = {}, rows = [];

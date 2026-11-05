@@ -419,7 +419,7 @@ function seatName(s){var x=S_.seats[s]; return x?x.name:"Ghế "+(s+1)}
 var RULES={
   sam:["Thứ tự: 3 < 4 < … < K < A < 2 (heo), không xét chất.","Đánh đơn, đôi, sám (3 lá), tứ quý hoặc sảnh từ 3 lá (sảnh không có 2). Chặn bằng bộ cùng kiểu, cùng số lá, lớn hơn.","Tứ quý chặt được heo: người bị chặt trả <b>10 lá</b> cho người chặt.","Thua trả <b>số lá còn lại</b> × tiền/lá. Còn heo trên tay: mỗi con tính thêm <b>5 lá</b> (thối heo).","Chưa đánh được lá nào (cóng): trả <b>20 lá</b>.","Báo Sâm trong 10 giây đầu: đánh hết mà không ai chặn được thì mỗi người trả <b>20 lá</b>; bị chặn thì đền mỗi người <b>20 lá</b>.","Mỗi lượt 20 giây. Hết giờ: đang cầm cái thì tự đánh lá nhỏ nhất, không thì tự bỏ lượt."],
   phom:["Chia 9 lá, người đánh đầu 10 lá. Mỗi lượt: ăn lá vừa đánh của người trước (nếu tạo được phỏm) hoặc bốc, rồi đánh 1 lá.","Phỏm: 3–4 lá cùng số, hoặc từ 3 lá liên tiếp cùng chất (A thấp, không vòng K–A).","Lá đã ăn phải nằm trong phỏm, mỗi phỏm chỉ chứa 1 lá ăn; không được đánh lá đã ăn.","Mỗi người đánh đủ 4 lá thì hạ phỏm và tự gửi bài vào phỏm người khác. Điểm rác thấp nhất là Nhất.","Trả cho Nhất: Nhì <b>1</b> · Ba <b>2</b> · Bét <b>3</b> · Móm (không có phỏm) <b>4</b> ván.","Ù (cả bài thành phỏm, dư tối đa 1 lá): mỗi người trả <b>5</b> ván. Bị ăn cây chốt: trả người ăn thêm <b>4</b> ván.","Mỗi lượt 20 giây, hết giờ tự bốc và tự đánh lá rác lớn nhất."],
-  bacay:["Mỗi người góp trước <b>tiền/ván</b>. Chia 3 lá, cộng điểm lấy hàng đơn vị (10, J, Q, K = 0).","<b>Ba tây</b> (3 lá J, Q, K) to nhất, sau đó 9 nút xuống 0 nút.","Bằng điểm thì so lá cao nhất theo chất: Rô > Cơ > Bích > Tép.","Chia thưởng tổng tiền góp: Nhất <b>50%</b> · Nhì <b>30%</b> · Ba <b>20%</b> (bàn 2 người chia 62,5% / 37,5%).","Bấm Lật bài khi sẵn sàng; sau 20 giây bài tự lật."]
+  bacay:["Mỗi người góp trước <b>tiền/ván</b>. Chia 3 lá, cộng điểm lấy hàng đơn vị (10, J, Q, K = 0).","<b>Ba tây</b> (3 lá J, Q, K) to nhất, sau đó 9 nút xuống 0 nút.","Bằng điểm thì so lá cao nhất theo chất: Rô > Cơ > Bích > Tép.","Chia thưởng tổng tiền góp: Nhất <b>50%</b> · Nhì <b>30%</b> · Ba <b>20%</b> (bàn 2 người thì Nhất ăn hết).","Bấm Lật bài khi sẵn sàng; sau 20 giây bài tự lật."]
 };
 var QUICK={sam:[500,1000,2000,5000],phom:[2000,5000,10000,20000],bacay:[5000,10000,20000,50000]};
 function renderLobby(){
@@ -459,6 +459,7 @@ function oppEl(s,extra){var t=S_.t, p=S_.seats[s]; var d=el("div","opp"+(t.turn=
 function badge(txt,red){return el("span","badge"+(red?" r":""),txt)}
 function backs(n){var m=el("div","mini"); for(var i=0;i<n;i++) m.appendChild(cardEl(null)); return m}
 
+function bcText(h){if(h.every(function(c){return R(c)>=10})) return "Ba tây"; return (h.reduce(function(a,c){return a+(R(c)<9?R(c)+1:0)},0)%10)+" nút"}
 function renderTable(){
   var t=S_.t, me=S_.mySeat, play=S_.phase==="playing", res=S_.phase==="result";
   var opps=$("opps"); opps.textContent="";
@@ -477,7 +478,7 @@ function renderTable(){
       if(t.passed&&t.passed.indexOf(s)>=0&&play) info.append(" ",badge("Bỏ lượt"));
       if(t.baoSam===s) info.append(" ",badge("Báo Sâm",true))}
     if(GAME==="phom") info.textContent=cnt+" lá · đánh "+t.discCount[s]+"/4";
-    if(GAME==="bacay") info.textContent=t.shown[s]?"Đã lật":"Đang nặn…";
+    if(GAME==="bacay") info.textContent=res&&t.hands[s]?bcText(t.hands[s]):t.shown[s]?"Đã lật":"Đang nặn…";
     chip.appendChild(info);
     if(GAME==="sam"&&!isMe&&play) chip.appendChild(backs(cnt));
     opps.appendChild(chip);
