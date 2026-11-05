@@ -148,6 +148,8 @@ function danger(horses, seat, p) {
 }
 
 // ---------- rooms ----------
+const admin = require("./admin");
+
 function attach(io) {
   const nsp = io.of("/ca-ngua");
   const rooms = new Map();
@@ -156,7 +158,7 @@ function attach(io) {
     let r = rooms.get(id);
     if (!r) {
       r = {
-        id, people: new Map(), sockets: new Map(), seats: [null, null, null, null], host: null,
+        id, people: new Map(), sockets: new Map(), seats: [null, null, null, null], host: null, admins: new Set(),
         rules: { ...DEFAULT_RULES }, phase: "lobby", turn: 0, horses: [null, null, null, null],
         dice: null, rolled: false, legal: [], streak: 0, deadline: 0, ranking: [], log: [],
         last: null, timer: null, emptySince: null, gameNo: 0,
@@ -183,7 +185,8 @@ function attach(io) {
     room.sockets.forEach((pid, sid) => { const s = nsp.sockets.get(sid); if (s) s.emit("state", publicState(room, pid)); });
   }
   function fixHost(room) {
-    const online = onlinePids(room);
+    const online = onlinePids(room), adm = [...room.admins].find((p) => online.has(p));
+    if (adm) { room.host = adm; return; } // tài khoản chủ phòng luôn làm chủ
     if (room.host && online.has(room.host)) return;
     room.host = [...online][0] || room.host;
   }
@@ -300,6 +303,7 @@ function attach(io) {
       const name = String(msg.name || "").trim().slice(0, 24) || "Người chơi";
       if (room) { room.sockets.delete(socket.id); socket.leave(room.id); }
       room = getRoom(rid); room.emptySince = null;
+      if (admin.isAdmin(msg.token)) room.admins.add(pid); else room.admins.delete(pid);
       room.people.set(pid, { name });
       room.sockets.set(socket.id, pid);
       socket.join(rid);

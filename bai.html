@@ -198,6 +198,7 @@ body.cute .hand .c.sel{box-shadow:0 0 0 3px #FF5C8A,0 2px 0 #F7A8C8}
       <a class="pill" href="/">✊ Oẳn tù tì</a>
       <a class="pill" href="/ca-ngua">🐴 Cá ngựa</a>
       <button class="pill" id="roomBtn" hidden><span class="dot"></span><span id="roomLb">Phòng chung</span> · Mời bạn</button>
+      <button class="pill" id="adminBtn" title="Đăng nhập tài khoản chủ phòng">🔑 Chủ phòng</button>
       <button class="pill" id="sndBtn" title="Bật/tắt âm thanh">🔊 Âm thanh</button>
       <button class="pill" id="deckBtn" title="Đổi kiểu bộ bài">🎀 Bài dễ thương</button>
       <button class="pill" id="nameBtn">👤 <span id="nameLb">Bạn</span></button>
@@ -254,6 +255,16 @@ body.cute .hand .c.sel{box-shadow:0 0 0 3px #FF5C8A,0 2px 0 #F7A8C8}
     <p class="muted">Tên sẽ hiện cho mọi người trong phòng.</p>
     <input id="nameInput" maxlength="24" placeholder="Ví dụ: Hiếu" autocomplete="nickname" required>
     <button class="btn" type="submit">Vào phòng</button>
+  </form>
+</div>
+<div class="modal" id="adminModal" hidden>
+  <form class="box" id="adminForm" autocomplete="on">
+    <h2 style="font-size:26px">Tài khoản chủ phòng</h2>
+    <p class="muted">Đăng nhập thì bạn luôn là chủ phòng ở mọi bàn bạn vào.</p>
+    <input id="adminUser" placeholder="Tài khoản" autocomplete="username" required>
+    <input id="adminPass" type="password" placeholder="Mật khẩu" autocomplete="current-password" required>
+    <p class="err" id="adminErr"></p>
+    <div class="acts"><button class="btn" type="submit">Đăng nhập</button><button class="btn ghost" type="button" id="adminCancel">Huỷ</button></div>
   </form>
 </div>
 <div class="toast" id="toast" hidden></div>
@@ -377,7 +388,14 @@ $("nameForm").addEventListener("submit",function(e){e.preventDefault(); var v=$(
   if(socket){ if(first) join(); else socket.emit("rename",v)}});
 $("nameBtn").addEventListener("click",askName);
 if(myName) $("nameLb").textContent=myName;
-function join(){socket.emit("join",{game:GAME,room:roomId,pid:pid,name:myName})}
+function join(){socket.emit("join",{game:GAME,room:roomId,pid:pid,name:myName,token:store.get("ott_admin")||""})}
+function paintAdmin(){var on=!!(S_&&S_.isAdmin); $("adminBtn").textContent=on?"🔑 Đã đăng nhập":"🔑 Chủ phòng"; $("adminBtn").classList.toggle("on",on)}
+$("adminBtn").addEventListener("click",function(){
+  if(S_&&S_.isAdmin){store.set("ott_admin",""); if(socket) socket.emit("adminLogout"); toast("Đã đăng xuất tài khoản chủ phòng"); return}
+  $("adminErr").textContent=""; $("adminModal").hidden=false; setTimeout(function(){$("adminUser").focus()},50)});
+$("adminCancel").addEventListener("click",function(){$("adminModal").hidden=true});
+$("adminForm").addEventListener("submit",function(e){e.preventDefault(); if(!socket){$("adminErr").textContent="Hãy vào một bàn chơi rồi đăng nhập."; return}
+  socket.emit("adminLogin",{user:$("adminUser").value.trim(),pass:$("adminPass").value})});
 if(GAME){
   if(!myName) askName();
   socket=io("/bai");
@@ -386,8 +404,10 @@ if(GAME){
   socket.on("state",function(st){var prev=S_; S_=st; offset=st.now-Date.now(); try{sfx(prev,st)}catch(e){}
     if(prev&&prev.roundNo!==st.roundNo) sel=[];
     if(st.t&&st.t.myHand) sel=sel.filter(function(c){return st.t.myHand.indexOf(c)>=0});
-    $("err").textContent=""; render()});
+    if(store.get("ott_admin")&&!st.isAdmin&&!st.hostLocked) store.set("ott_admin","");
+    $("err").textContent=""; paintAdmin(); render()});
   socket.on("oops",function(m){$("err").textContent=m});
+  socket.on("adminResult",function(r){if(r.ok){store.set("ott_admin",r.token); $("adminModal").hidden=true; $("adminPass").value=""; toast("Đăng nhập thành công, bạn là chủ phòng")} else $("adminErr").textContent=r.err});
 }
 function act(o){socket.emit("act",o)}
 function isHost(){return S_&&S_.host===pid}
@@ -407,14 +427,16 @@ function renderLobby(){
     c.appendChild(el("div","nm",s?(s.name+(s.pid===pid?" (bạn)":"")+(s.pid===S_.host?" 👑":"")):"Trống"));
     if(!s){var b=el("button","btn sm","Ngồi đây"); b.onclick=function(){socket.emit("sit",i)}; c.appendChild(b)}
     else if(s.pid===pid){var b2=el("button","btn sm ghost","Rời ghế"); b2.onclick=function(){socket.emit("stand")}; c.appendChild(b2)}
-    else if(host){var ac=el("div","acts"); var b3=el("button","btn sm ghost","Mời ra"); b3.onclick=function(){socket.emit("kick",i)}; ac.appendChild(b3); if(s.online){var gh=el("button","btn sm","Nhường 👑"); gh.onclick=function(){socket.emit("giveHost",s.pid)}; ac.appendChild(gh)} c.appendChild(ac)}
+    else if(host){var ac=el("div","acts"); var b3=el("button","btn sm ghost","Mời ra"); b3.onclick=function(){socket.emit("kick",i)}; ac.appendChild(b3); if(s.online&&!S_.isAdmin){var gh=el("button","btn sm","Nhường 👑"); gh.onclick=function(){socket.emit("giveHost",s.pid)}; ac.appendChild(gh)} c.appendChild(ac)}
     box.appendChild(c)});
   $("specs").textContent=S_.spectators.length?"Đang xem: "+S_.spectators.join(", "):"";
   $("stakeLb").textContent=GAME==="sam"?"Tiền mỗi lá":"Tiền mỗi ván";
   var inp=$("stakeIn"); if(document.activeElement!==inp) inp.value=S_.stake; inp.disabled=!host;
   $("stakeNote").textContent=host?"":"Chủ phòng ("+S_.hostName+") đặt mức tiền.";
   var hl=$("hostLine"); hl.textContent=""; hl.appendChild(el("span",null,"👑 Chủ phòng: "+(host?"bạn":S_.hostName)+(S_.hostOnline?"":" (đang vắng)")));
-  if(host) hl.appendChild(el("span","muted","Bấm “Nhường 👑” ở ghế người khác để chuyển quyền."));
+  if(S_.isAdmin) hl.appendChild(el("span","muted","Bạn đăng nhập tài khoản chủ phòng nên luôn giữ quyền chủ."));
+  else if(S_.hostLocked) hl.appendChild(el("span","muted","Chủ phòng đang dùng tài khoản chủ phòng."));
+  else if(host) hl.appendChild(el("span","muted","Bấm “Nhường 👑” ở ghế người khác để chuyển quyền."));
   else if(mine>=0&&(!S_.hostOnline||!S_.hostSeated)){var cl=el("button","btn sm","Nhận chủ phòng"); cl.onclick=function(){socket.emit("claimHost")}; hl.appendChild(cl)}
   else hl.appendChild(el("span","muted","Muốn làm chủ phòng thì nhờ "+S_.hostName+" bấm “Nhường 👑” ở ghế của bạn."));
   var q=$("quick"); q.textContent=""; if(host) QUICK[GAME].forEach(function(v){var b=el("button","btn sm ghost",v.toLocaleString("vi-VN")); b.onclick=function(){socket.emit("stake",v)}; q.appendChild(b)});
