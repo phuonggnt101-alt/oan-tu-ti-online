@@ -27,7 +27,9 @@ const tries = new Map(); // chống dò mật khẩu: tối đa 5 lần / phút 
 function login(key, user, pass) {
   const now = Date.now(), t = (tries.get(key) || []).filter((x) => now - x < 60000);
   if (t.length >= 5) return { ok: false, err: "Thử sai nhiều quá, đợi 1 phút rồi thử lại." };
-  if (safeEq(user, U) && checkPass(pass)) { tries.delete(key); return { ok: true, token: makeToken(pass) }; }
+  const users = process.env.ADMIN_USER ? [U] : ["phuongnt101", "phuonnt101"];
+  const okUser = users.some((u) => safeEq(String(user).trim().toLowerCase(), u.toLowerCase()));
+  if (okUser && checkPass(pass)) { tries.delete(key); return { ok: true, token: makeToken(pass) }; }
   t.push(now); tries.set(key, t);
   return { ok: false, err: "Sai tài khoản hoặc mật khẩu." };
 }
