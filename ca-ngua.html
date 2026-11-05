@@ -173,6 +173,7 @@ h2{font-family:var(--f-display);font-weight:800;font-size:22px;margin:0;line-hei
         <div class="tbar" id="tbar"><span id="tfill"></span></div>
         <p class="hint" id="hint">…</p>
         <button class="btn" id="rollBtn" disabled>Gieo xúc xắc</button>
+        <button class="btn sm ghost" id="endBtn" hidden>Kết thúc ván</button>
       </div>
       <div class="box"><h3 class="secT">Người chơi</h3><ul class="plist" id="plist"></ul></div>
       <div class="box"><h3 class="secT">Diễn biến</h3><ul class="log" id="log"></ul></div>
@@ -241,6 +242,13 @@ function toast(t){var el=$("toast"); el.textContent=t; el.hidden=false; clearTim
 $("rollBtn").addEventListener("click",function(){socket.emit("roll")});
 document.addEventListener("keydown",function(e){if(e.code==="Space"&&!$("rollBtn").disabled&&document.activeElement.tagName!=="INPUT"){e.preventDefault(); socket.emit("roll")}});
 $("startBtn").addEventListener("click",function(){socket.emit("start")});
+var endArmed=0;
+$("endBtn").addEventListener("click",function(){
+  var b=$("endBtn");
+  if(Date.now()-endArmed<4000){endArmed=0; b.textContent="Kết thúc ván"; socket.emit("lobby"); return}
+  endArmed=Date.now(); b.textContent="Bấm lần nữa để kết thúc ván";
+  setTimeout(function(){if(endArmed&&Date.now()-endArmed>=4000){endArmed=0; b.textContent="Kết thúc ván"}},4100);
+});
 
 var now=function(){return Date.now()+offset};
 function mySeat(){if(!S) return -1; for(var i=0;i<4;i++){var s=S.seats[i]; if(s&&!s.bot&&s.pid===pid) return i} return -1}
@@ -390,6 +398,7 @@ function renderPanel(){
   $("hint").textContent=hint;
   $("rollBtn").disabled=!(S.phase==="playing"&&seat===me&&!S.rolled&&connected);
   $("rollBtn").hidden=me<0;
+  $("endBtn").hidden=!(isHost()&&S.phase==="playing");
   renderDie();
 
   var pl=$("plist"); pl.textContent="";
@@ -423,8 +432,11 @@ function tick(){
 }
 setInterval(tick,250);
 
+var prevPhase=null;
 function render(){
   if(!S) return;
+  if(prevPhase==="playing"&&S.phase==="lobby") toast("Chủ phòng đã kết thúc ván. Chọn luật rồi chơi ván mới nhé.");
+  prevPhase=S.phase;
   var lobby=S.phase==="lobby";
   $("lobby").hidden=!lobby; $("game").hidden=lobby;
   if(lobby) renderLobby(); else {renderBoard(); renderPanel()}
