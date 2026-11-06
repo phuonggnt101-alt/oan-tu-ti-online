@@ -241,7 +241,7 @@ function attach(io) {
       return schedule(room, 1400, () => endTurn(room, bonus));
     }
     const s = room.seats[seat];
-    if (s.bot || room.legal.length === 1) {
+    if (s.bot) {
       room.deadline = 0; broadcast(room);
       const h = s.bot ? botPick(room.horses, room.rules, seat, d, room.legal) : room.legal[0];
       return schedule(room, s.bot ? 900 : 1100, () => doMove(room, h));
@@ -357,6 +357,13 @@ function attach(io) {
     socket.on("lobby", () => { if (!isHost() || room.phase === "lobby") return; clearTimeout(room.timer); room.phase = "lobby"; room.dice = null; room.legal = []; broadcast(room); });
 
     socket.on("roll", () => { if (!room || room.phase !== "playing" || mySeat() !== room.turn) return; doRoll(room); });
+    socket.on("skip", () => { // gieo xong nhưng chọn không đi
+      if (!room || room.phase !== "playing" || mySeat() !== room.turn || !room.rolled || !room.legal.length) return;
+      clearTimeout(room.timer); const d = room.dice;
+      addLog(room, seatName(room, room.turn) + " gieo " + d + " nhưng chọn không đi" + (isBonusRoll(room.rules, d) ? ", được gieo thêm." : "."), room.turn);
+      room.legal = []; room.last = null; room.deadline = 0; broadcast(room);
+      schedule(room, 700, () => endTurn(room, isBonusRoll(room.rules, d)));
+    });
     socket.on("move", (h) => { if (!room || room.phase !== "playing" || mySeat() !== room.turn) return; doMove(room, Number(h)); });
 
     socket.on("disconnect", () => {
