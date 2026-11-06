@@ -22,6 +22,20 @@ function samCombo(cards) {
   if (n >= 3 && v[n - 1] < 12 && v.every((x, i) => i === 0 || x === v[i - 1] + 1)) return { type: "straight", len: n, top: v[n - 1] };
   return null;
 }
+// Hết giờ khi đang phải chặn: tìm bộ nhỏ nhất chặn được bài trên bàn (null nếu không có).
+function samAutoBeat(hand, lead) {
+  const by = {}; for (const c of hand) (by[sv(c)] = by[sv(c)] || []).push(c);
+  if (lead.type === "straight") {
+    for (let t = lead.top + 1; t <= 11; t++) {
+      const cs = []; for (let v = t - lead.len + 1; v <= t; v++) { if (!by[v]) break; cs.push(by[v][0]); }
+      if (cs.length === lead.len) return cs;
+    }
+    return null;
+  }
+  for (let v = lead.top + 1; v <= 12; v++) if (by[v] && by[v].length >= lead.len) return by[v].slice(0, lead.len);
+  if (lead.type === "single" && lead.top === 12) for (let v = 0; v <= 12; v++) if (by[v] && by[v].length === 4) return by[v]; // tứ quý chặt heo
+  return null;
+}
 function samBeats(a, lead) {
   if (!lead) return true;
   if (lead.type === "single" && lead.top === 12 && a.type === "four") return true; // tứ quý chặt heo
@@ -228,7 +242,7 @@ function attach(io) {
     schedule(room, GAMES.sam.turnMs, () => {
       const st = room.st, s = st.turn;
       if (!st.lead) { const c = st.hands[s].slice().sort((a, b) => sv(a) - sv(b))[0]; samPlay(room, s, [c], true); }
-      else samPass(room, s, true);
+      else { const cs = samAutoBeat(st.hands[s], st.lead); if (cs) samPlay(room, s, cs, true); else samPass(room, s, true); }
     });
   }
   function samAdvance(room) {
