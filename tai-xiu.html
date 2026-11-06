@@ -137,7 +137,7 @@ h2{font-family:var(--f-display);font-weight:800;font-size:20px;margin:0;line-hei
         <div class="custom"><input id="customAmt" inputmode="numeric" placeholder="Số khác…" aria-label="Số tiền tự nhập"><button class="btn sm ghost" id="useCustom">Dùng</button></div>
         <button class="btn sm ghost" id="cancelBtn" hidden>Huỷ cược</button>
       </div>
-      <p class="muted" style="margin:0;text-align:center;font-size:13.5px">Chọn mức tiền rồi bấm vào <b>TÀI</b> hoặc <b>XỈU</b>. Bấm thêm lần nữa để đặt thêm.</p>
+      <p class="muted" style="margin:0;text-align:center;font-size:13.5px" id="howto"></p>
       <div><h2 style="font-size:16px;margin-bottom:6px">Cầu gần đây</h2><div class="road" id="road"></div></div>
     </div>
     <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
@@ -145,9 +145,9 @@ h2{font-family:var(--f-display);font-weight:800;font-size:20px;margin:0;line-hei
       <div class="box panel"><h2>Bảng xếp hạng</h2><ul class="list" id="bxh"></ul></div>
       <div class="box panel"><h2>Luật chơi</h2><ul class="rules">
         <li>Mỗi phiên 30 giây đặt cửa, rồi lắc 3 xúc xắc. Tổng 11–17 là <b>Tài</b>, 4–10 là <b>Xỉu</b>.</li>
-        <li>Không có nhà cái: tiền cửa thua được chia cho cửa thắng theo tỉ lệ tiền đặt.</li>
+        <li>Không có nhà cái, <b>cân cửa</b>: chỉ phần tiền khớp được giữa hai cửa mới tính, cửa đông hơn được hoàn phần lệch. Ai thắng cũng ăn đúng bằng số tiền được tính (1 ăn 1).</li>
         <li>Ra <b>bão</b> (3 con giống nhau) hoặc chỉ một cửa có người đặt: hoàn tiền tất cả.</li>
-        <li>Mỗi phiên chỉ đặt một cửa. Tiền chỉ để tính điểm trên bảng xếp hạng.</li>
+        <li><b>Người đặt đầu tiên quyết định mức cược</b> của phiên, mọi người sau đặt đúng mức đó. Mỗi người một cửa, một lần.</li><li>Tiền chỉ để tính điểm trên bảng xếp hạng.</li>
       </ul></div>
       <div class="box panel"><h2>Diễn biến</h2><ul class="list" id="log"></ul></div>
     </div>
@@ -203,7 +203,7 @@ function renderChips(){var box=$("chips"); box.textContent=""; CHIPS.forEach(fun
   if(CHIPS.indexOf(chip)<0){var c=el("button","chip on",chip>=1000?Math.round(chip/1000)+"k":String(chip)); box.appendChild(c)}}
 renderChips();
 $("useCustom").onclick=function(){var v=Math.floor(Number(String($("customAmt").value).replace(/[^\d]/g,""))); if(!(v>0)) return toast("Nhập số tiền hợp lệ"); chip=v; store.set("tx_chip",v); renderChips(); toast("Mức đặt: "+fmt(v))};
-function bet(side){if(!S||S.phase!=="betting") return toast("Chờ phiên mới để đặt cửa"); socket.emit("bet",{side:side,amt:chip}); if(window.SFX) SFX.play("click")}
+function bet(side){if(!S||S.phase!=="betting") return toast("Chờ phiên mới để đặt cửa"); if(S.myBet) return toast("Bạn đã đặt phiên này rồi"); socket.emit("bet",{side:side,amt:S.stake?S.stake.amt:chip}); if(window.SFX) SFX.play("click")}
 ["Tai","Xiu"].forEach(function(k){var e=$("side"+k); e.onclick=function(){bet(k.toLowerCase())}; e.onkeydown=function(ev){if(ev.key==="Enter"||ev.key===" "){ev.preventDefault(); bet(k.toLowerCase())}}});
 $("cancelBtn").onclick=function(){socket.emit("cancelBet")};
 
@@ -227,16 +227,19 @@ function render(prev){
     $("mine"+K).textContent=S.myBet&&S.myBet.side===k?"Bạn đặt "+fmt(S.myBet.amt):"";
     var sd=$("side"+K); sd.classList.toggle("dis",S.phase!=="betting"); sd.classList.toggle("won",S.phase==="result"&&S.result&&!S.result.bao&&S.result.side===k)});
   $("cancelBtn").hidden=!(S.phase==="betting"&&S.myBet);
+  var locked=!!(S.stake&&S.phase==="betting"); $("chips").style.display=locked?"none":""; document.querySelector(".custom").style.display=locked?"none":"";
+  $("howto").innerHTML=S.phase!=="betting"?"Chờ phiên mới…":S.myBet?"Bạn đã đặt <b>"+fmt(S.myBet.amt)+"</b> vào <b>"+(S.myBet.side==="tai"?"TÀI":"XỈU")+"</b>.":locked?"Mức cược phiên này: <b>"+fmt(S.stake.amt)+"</b> (do "+S.stake.by.replace(/[<>&]/g,"")+" mở). Bấm <b>TÀI</b> hoặc <b>XỈU</b> để theo.":"Bạn đặt đầu tiên: chọn mức tiền rồi bấm <b>TÀI</b> hoặc <b>XỈU</b>. Mọi người sau sẽ phải theo đúng mức này.";
   if(!prev||prev.phase!==S.phase||prev.phien!==S.phien) renderDice();
   var msg=$("msg"); msg.className="msg"; msg.textContent="";
   if(S.phase==="result"&&S.result){var r=S.result;
     if(S.myBet){var n=r.net[pid]||0; if(r.refund) msg.textContent=r.bao?"Ra bão! Hoàn lại "+fmt(S.myBet.amt)+".":"Chỉ một cửa có người đặt, hoàn tiền."; else if(n>0){msg.textContent="Bạn thắng +"+fmt(n)+" 🎉"; msg.classList.add("win")} else {msg.textContent="Bạn thua −"+fmt(-n); msg.classList.add("lose")}}
     else msg.textContent=r.refund&&Object.keys(r.net).length?"Hoàn tiền phiên này.":"Bạn không đặt phiên này."}
   else if(S.phase==="betting"&&S.sum.tai.amt+S.sum.xiu.amt>0&&S.myBet){var mine=S.myBet, other=S.sum[mine.side==="tai"?"xiu":"tai"].amt, same=S.sum[mine.side].amt;
-    msg.textContent=other?"Nếu "+(mine.side==="tai"?"Tài":"Xỉu")+" thắng, bạn ăn khoảng +"+fmt(Math.floor(other*mine.amt/same)):"Chưa ai đặt cửa bên kia, nếu vậy sẽ hoàn tiền."}
+    var eff=Math.floor(mine.amt*Math.min(other,same)/same);
+    msg.textContent=!other?"Chưa ai đặt cửa bên kia, nếu vậy sẽ hoàn tiền.":eff<mine.amt?"Cửa bạn đang đông hơn: chỉ "+fmt(eff)+" được tính (thắng +"+fmt(eff)+", thua −"+fmt(eff)+"), phần còn lại hoàn lại.":"Thắng ăn +"+fmt(eff)+", thua mất −"+fmt(eff)+"."}
   var road=$("road"); road.textContent=""; S.history.forEach(function(h){var s=el("span",h.bao?"b":h.side==="tai"?"t":"x",String(h.total)); s.title="#"+h.phien+": "+h.dice.join("-"); road.appendChild(s)});
   var bb=$("betsBox"), bl=$("bets"); bl.textContent=""; bb.hidden=!(S.bets&&S.bets.length);
-  (S.bets||[]).forEach(function(b){var li=el("li"); li.append(el("span","nm",b.name+" · "+(b.side==="tai"?"Tài":"Xỉu")+" "+fmt(b.amt))); var v=el("span",S.phase==="result"?(b.net>0?"pos":b.net<0?"neg":"muted"):"muted",S.phase==="result"?(b.net>0?"+":b.net<0?"−":"±")+fmt(b.net):"…"); li.append(v); bl.appendChild(li)});
+  (S.bets||[]).forEach(function(b){var li=el("li"); li.append(el("span","nm",b.name+" · "+(b.side==="tai"?"Tài":"Xỉu")+" "+fmt(b.amt)+(S.phase==="result"&&S.result&&!S.result.refund&&S.result.live&&S.result.live[b.pid]<b.amt?" (tính "+fmt(S.result.live[b.pid])+")":""))); var v=el("span",S.phase==="result"?(b.net>0?"pos":b.net<0?"neg":"muted"):"muted",S.phase==="result"?(b.net>0?"+":b.net<0?"−":"±")+fmt(b.net):"…"); li.append(v); bl.appendChild(li)});
   var bx=$("bxh"); bx.textContent=""; if(!S.bxh.length) bx.appendChild(el("li","muted","Chưa có ai thắng thua."));
   S.bxh.forEach(function(r,i){var li=el("li"); li.append(el("span","nm",(i+1)+". "+r.name+(r.pid===pid?" (bạn)":"")), el("span",r.total>0?"pos":r.total<0?"neg":"muted",(r.total>0?"+":r.total<0?"−":"")+fmt(r.total))); bx.appendChild(li)});
   var lg=$("log"); lg.textContent=""; S.log.slice().reverse().forEach(function(t){lg.appendChild(el("li",null,t))}); if(!S.log.length) lg.appendChild(el("li","muted","Chưa có phiên nào."));
