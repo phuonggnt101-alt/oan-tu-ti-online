@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Tài Xỉu Online</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎲</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --bg:#F6F1FF; --dots:rgba(70,40,140,.10); --card:#FFFFFF; --ink:#1E1638; --muted:#6B6488; --soft:#EEE8FB;
+  --accent:#6C47FF; --win:#18A558; --lose:#E5383B; --grid:#D9D1EE;
+  --tai:#E5383B; --xiu:#2B6BE8; --ttai:#FFE1E2; --txiu:#DCE9FF; --gold:#FFC233;
+  --shadow:4px 4px 0 var(--ink);
+  --f-display:"Baloo 2","Trebuchet MS",system-ui,sans-serif;
+  --f-body:"Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#15112A; --dots:rgba(200,180,255,.07); --card:#221C3D; --ink:#F2EEFF; --muted:#A79FC9; --soft:#2C2550;
+  --accent:#9B82FF; --win:#3DD68C; --lose:#FF5C5F; --grid:#3E3566;
+  --tai:#FF6B6E; --xiu:#6EA0FF; --ttai:#4A2430; --txiu:#1E3157; --shadow:4px 4px 0 #000; color-scheme:dark}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;min-height:100vh;
+  background-image:radial-gradient(var(--dots) 1.5px,transparent 1.6px);background-size:20px 20px;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.wrap{max-width:1120px;margin:0 auto;padding-block:18px 90px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
+button,input{font:inherit;color:inherit}
+.box{background:var(--card);border:3px solid var(--ink);border-radius:18px;box-shadow:var(--shadow)}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:12px}
+.logo .mk{width:46px;height:46px;border:3px solid var(--ink);border-radius:12px;background:var(--gold);display:grid;place-items:center;font-size:26px;box-shadow:3px 3px 0 var(--ink);transform:rotate(-6deg)}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(28px,6vw,40px);line-height:1;margin:0}
+.meta{display:flex;gap:8px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:14px;padding:6px 12px;border:2.5px solid var(--ink);border-radius:999px;background:var(--card);cursor:pointer;box-shadow:2px 2px 0 var(--ink);text-decoration:none;color:inherit}
+.pill .dot{width:9px;height:9px;border-radius:50%;background:var(--win)}
+.pill.off .dot{background:var(--lose)}
+.btn{font-family:var(--f-display);font-weight:800;font-size:17px;padding:8px 18px;border:3px solid var(--ink);border-radius:14px;background:var(--accent);color:#fff;cursor:pointer;box-shadow:var(--shadow);transition:transform .12s,box-shadow .12s}
+.btn:active:not(:disabled){transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:var(--card);color:var(--ink)}
+.btn.sm{font-size:14px;padding:5px 12px;border-width:2.5px;box-shadow:2px 2px 0 var(--ink);border-radius:10px}
+:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+h2{font-family:var(--f-display);font-weight:800;font-size:20px;margin:0;line-height:1.15}
+.muted{color:var(--muted)}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:18px;align-items:start}
+@media (max-width:900px){.main{grid-template-columns:1fr}}
+.stage{padding:18px;display:flex;flex-direction:column;gap:16px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.phien{font-family:var(--f-display);font-weight:800;font-size:18px}
+.timer{font-family:var(--f-display);font-weight:800;font-size:30px;font-variant-numeric:tabular-nums;line-height:1}
+.board{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:stretch}
+@media (max-width:560px){.board{grid-template-columns:1fr 1fr}.bowl{grid-column:1/-1;order:-1}}
+.side{border:3px solid var(--ink);border-radius:18px;padding:14px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;box-shadow:var(--shadow);transition:transform .12s;text-align:center;background:var(--card)}
+.side:hover{transform:translateY(-2px)}
+.side.tai{background:var(--ttai)} .side.xiu{background:var(--txiu)}
+.side .nm{font-family:var(--f-display);font-weight:800;font-size:clamp(30px,6vw,44px);line-height:1}
+.side.tai .nm{color:var(--tai)} .side.xiu .nm{color:var(--xiu)}
+.side .rg{font-size:13px;color:var(--muted);font-weight:600}
+.side .amt{font-family:var(--f-display);font-weight:800;font-size:22px;font-variant-numeric:tabular-nums}
+.side .n{font-size:13px;color:var(--muted)}
+.side .mine{font-weight:700;font-size:14px;min-height:21px}
+.side.won{outline:4px solid var(--gold);outline-offset:3px;animation:glow 1s ease-in-out infinite alternate}
+@keyframes glow{to{outline-color:transparent}}
+.side.dis{cursor:default;opacity:.85}
+.bowl{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-width:200px}
+.dice{display:flex;gap:10px}
+.die{width:58px;height:58px;border:3px solid var(--ink);border-radius:14px;background:#fff;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:8px;gap:1px;box-shadow:3px 3px 0 var(--ink)}
+.die i{width:10px;height:10px;border-radius:50%;background:#1E1638;place-self:center;visibility:hidden}
+.die.q{display:grid;place-items:center;font-family:var(--f-display);font-weight:800;font-size:28px;color:#1E1638;grid-template-columns:1fr;grid-template-rows:1fr;padding:0}
+.die.shake{animation:shake .25s linear infinite}
+@keyframes shake{0%{transform:rotate(-12deg) translateY(-3px)}50%{transform:rotate(12deg) translateY(3px)}100%{transform:rotate(-12deg) translateY(-3px)}}
+.total{font-family:var(--f-display);font-weight:800;font-size:22px;min-height:33px;text-align:center}
+.chips{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:center}
+.chip{width:58px;height:58px;border-radius:50%;border:3px dashed var(--ink);background:var(--gold);font-family:var(--f-display);font-weight:800;font-size:15px;cursor:pointer;color:#1E1638;box-shadow:2px 2px 0 var(--ink)}
+.chip.on{border-style:solid;transform:translateY(-4px);box-shadow:3px 5px 0 var(--ink);background:#FFD966}
+.custom{display:flex;gap:6px;align-items:center}
+.custom input{width:120px;padding:7px 10px;border:2.5px solid var(--ink);border-radius:10px;background:var(--bg);font-weight:600}
+.msg{text-align:center;font-weight:600;min-height:24px}
+.msg.win{color:var(--win)} .msg.lose{color:var(--lose)}
+.road{display:flex;flex-wrap:wrap;gap:5px}
+.road span{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:800;color:#fff;border:2px solid var(--ink)}
+.road .t{background:var(--tai)} .road .x{background:var(--xiu)} .road .b{background:var(--gold);color:#1E1638}
+.panel{padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.list li{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px dashed var(--grid);font-size:14px}
+.list li:first-child{border-top:0}
+.list .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pos{color:var(--win);font-weight:700} .neg{color:var(--lose);font-weight:700}
+.rules{margin:0;padding-left:18px;font-size:13.5px;color:var(--muted)}
+.modal{position:fixed;inset:0;background:rgba(20,12,45,.55);display:grid;place-items:center;padding:16px;z-index:50}
+.modal .box{width:min(400px,100%);padding:24px;display:flex;flex-direction:column;gap:14px}
+.modal input{font:inherit;font-size:18px;font-weight:600;padding:12px 14px;border:3px solid var(--ink);border-radius:12px;background:var(--bg);color:var(--ink);width:100%}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--card);padding:10px 18px;border-radius:999px;font-weight:600;z-index:60;max-width:calc(100vw - 32px);text-align:center}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo"><div class="mk" aria-hidden="true">🎲</div><h1>Tài Xỉu</h1></div>
+    <div class="meta">
+      <a class="pill" href="/">✊ Oẳn tù tì</a>
+      <a class="pill" href="/ca-ngua">🐴 Cá ngựa</a>
+      <a class="pill" href="/bai">🃏 Đánh bài</a>
+      <a class="pill" href="/caro">⭕ Caro</a>
+      <button class="pill" id="roomBtn" title="Sao chép link mời"><span class="dot"></span><span id="roomLb">Phòng chung</span> · Mời bạn</button>
+      <button class="pill" id="nameBtn" title="Đổi tên">👤 <span id="nameLb">Bạn</span></button>
+    </div>
+  </header>
+
+  <section class="main">
+    <div class="box stage">
+      <div class="top"><span class="phien" id="phien">Phiên #—</span><span class="muted" id="phase">Đang kết nối…</span><span class="timer" id="timer">--</span></div>
+      <div class="board">
+        <div class="side tai" id="sideTai" role="button" tabindex="0" aria-label="Đặt cửa Tài">
+          <span class="nm">TÀI</span><span class="rg">Tổng 11 – 17</span>
+          <span class="amt" id="amtTai">0</span><span class="n" id="nTai">0 người</span><span class="mine" id="mineTai"></span>
+        </div>
+        <div class="bowl">
+          <div class="dice" id="dice"></div>
+          <div class="total" id="total"></div>
+        </div>
+        <div class="side xiu" id="sideXiu" role="button" tabindex="0" aria-label="Đặt cửa Xỉu">
+          <span class="nm">XỈU</span><span class="rg">Tổng 4 – 10</span>
+          <span class="amt" id="amtXiu">0</span><span class="n" id="nXiu">0 người</span><span class="mine" id="mineXiu"></span>
+        </div>
+      </div>
+      <div class="msg" id="msg"></div>
+      <div class="chips" id="chips"></div>
+      <div class="chips">
+        <div class="custom"><input id="customAmt" inputmode="numeric" placeholder="Số khác…" aria-label="Số tiền tự nhập"><button class="btn sm ghost" id="useCustom">Dùng</button></div>
+        <button class="btn sm ghost" id="cancelBtn" hidden>Huỷ cược</button>
+      </div>
+      <p class="muted" style="margin:0;text-align:center;font-size:13.5px">Chọn mức tiền rồi bấm vào <b>TÀI</b> hoặc <b>XỈU</b>. Bấm thêm lần nữa để đặt thêm.</p>
+      <div><h2 style="font-size:16px;margin-bottom:6px">Cầu gần đây</h2><div class="road" id="road"></div></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+      <div class="box panel" id="betsBox" hidden><h2>Kết quả phiên</h2><ul class="list" id="bets"></ul></div>
+      <div class="box panel"><h2>Bảng xếp hạng</h2><ul class="list" id="bxh"></ul></div>
+      <div class="box panel"><h2>Luật chơi</h2><ul class="rules">
+        <li>Mỗi phiên 30 giây đặt cửa, rồi lắc 3 xúc xắc. Tổng 11–17 là <b>Tài</b>, 4–10 là <b>Xỉu</b>.</li>
+        <li>Không có nhà cái: tiền cửa thua được chia cho cửa thắng theo tỉ lệ tiền đặt.</li>
+        <li>Ra <b>bão</b> (3 con giống nhau) hoặc chỉ một cửa có người đặt: hoàn tiền tất cả.</li>
+        <li>Mỗi phiên chỉ đặt một cửa. Tiền chỉ để tính điểm trên bảng xếp hạng.</li>
+      </ul></div>
+      <div class="box panel"><h2>Diễn biến</h2><ul class="list" id="log"></ul></div>
+    </div>
+  </section>
+</div>
+
+<div class="modal" id="modal" hidden>
+  <form class="box" id="nameForm">
+    <h2 style="font-size:28px">Bạn tên gì?</h2>
+    <p class="muted" style="margin:0">Tên sẽ hiện cho mọi người trong phòng.</p>
+    <input id="nameInput" maxlength="24" placeholder="Ví dụ: Hiếu" autocomplete="nickname" required>
+    <button class="btn" type="submit">Vào phòng</button>
+  </form>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/sfx.js"></script>
+<script src="/chat.js"></script>
+<script>
+(function(){
+var $=function(id){return document.getElementById(id)};
+var store={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+var params=new URLSearchParams(location.search);
+var roomId=(params.get("phong")||"chung").toLowerCase().replace(/[^a-z0-9-]/g,"").slice(0,24)||"chung";
+var pid=store.get("ott_pid"); if(!pid){pid=Math.random().toString(36).slice(2)+Date.now().toString(36); store.set("ott_pid",pid)}
+var myName=store.get("ott_name")||"";
+var S=null, offset=0, chip=Number(store.get("tx_chip"))||5000;
+var socket=io("/tai-xiu"); if(window.GameChat) GameChat(socket,pid);
+function join(){socket.emit("join",{room:roomId,pid:pid,name:myName})}
+socket.on("connect",function(){if(myName) join(); $("roomBtn").classList.remove("off")});
+socket.on("disconnect",function(){$("roomBtn").classList.add("off"); $("phase").textContent="Mất kết nối, đang thử lại…"});
+socket.on("oops",function(m){toast(m)});
+socket.on("state",function(st){var prev=S; S=st; offset=st.now-Date.now(); try{sfx(prev,st)}catch(e){} render(prev)});
+var fmt=function(n){return Math.abs(n).toLocaleString("vi-VN")};
+function el(t,c,x){var e=document.createElement(t); if(c) e.className=c; if(x!=null) e.textContent=x; return e}
+function toast(t){var e=$("toast"); e.textContent=t; e.hidden=false; clearTimeout(toast.t); toast.t=setTimeout(function(){e.hidden=true},2400)}
+function sfx(p,s){if(!window.SFX||!p) return;
+  if(s.phase==="rolling"&&p.phase!=="rolling") SFX.play("dice");
+  if(s.phase==="betting"&&p.phase!=="betting") SFX.play("go");
+  if(s.phase==="result"&&p.phase!=="result"&&s.myBet&&s.result){var n=s.result.net[pid]||0; SFX.play(n>0?"win":n<0?"lose":"end")}}
+function askName(){$("nameInput").value=myName; $("modal").hidden=false; setTimeout(function(){$("nameInput").focus()},50)}
+$("nameForm").addEventListener("submit",function(e){e.preventDefault(); var v=$("nameInput").value.trim().slice(0,24); if(!v) return;
+  var first=!myName; myName=v; store.set("ott_name",v); $("modal").hidden=true; $("nameLb").textContent=v; if(first) join(); else socket.emit("rename",v)});
+$("nameBtn").addEventListener("click",askName);
+if(!myName) askName(); else $("nameLb").textContent=myName;
+$("roomLb").textContent=roomId==="chung"?"Phòng chung":"Phòng "+roomId;
+$("roomBtn").addEventListener("click",function(){var url=location.origin+"/tai-xiu"+(roomId==="chung"?"":"?phong="+roomId);
+  if(navigator.clipboard) navigator.clipboard.writeText(url).then(function(){toast("Đã sao chép link mời")},function(){toast(url)}); else toast(url)});
+
+var CHIPS=[1000,5000,10000,50000,100000];
+function renderChips(){var box=$("chips"); box.textContent=""; CHIPS.forEach(function(v){var b=el("button","chip"+(v===chip?" on":""),v>=1000?(v/1000)+"k":String(v)); b.type="button"; b.onclick=function(){chip=v; store.set("tx_chip",v); renderChips()}; box.appendChild(b)});
+  if(CHIPS.indexOf(chip)<0){var c=el("button","chip on",chip>=1000?Math.round(chip/1000)+"k":String(chip)); box.appendChild(c)}}
+renderChips();
+$("useCustom").onclick=function(){var v=Math.floor(Number(String($("customAmt").value).replace(/[^\d]/g,""))); if(!(v>0)) return toast("Nhập số tiền hợp lệ"); chip=v; store.set("tx_chip",v); renderChips(); toast("Mức đặt: "+fmt(v))};
+function bet(side){if(!S||S.phase!=="betting") return toast("Chờ phiên mới để đặt cửa"); socket.emit("bet",{side:side,amt:chip}); if(window.SFX) SFX.play("click")}
+["Tai","Xiu"].forEach(function(k){var e=$("side"+k); e.onclick=function(){bet(k.toLowerCase())}; e.onkeydown=function(ev){if(ev.key==="Enter"||ev.key===" "){ev.preventDefault(); bet(k.toLowerCase())}}});
+$("cancelBtn").onclick=function(){socket.emit("cancelBet")};
+
+var PIPS={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+function die(n,shake){var d=el("div","die"+(n?"":" q")+(shake?" shake":"")); if(!n){d.textContent="?"; return d}
+  for(var i=0;i<9;i++){var p=el("i"); if(PIPS[n].indexOf(i)>=0) p.style.visibility="visible"; d.appendChild(p)} return d}
+var shakeT=null;
+function renderDice(){
+  var box=$("dice"); clearInterval(shakeT);
+  if(S.phase==="rolling"){var draw=function(){box.textContent=""; for(var i=0;i<3;i++) box.appendChild(die(1+Math.floor(Math.random()*6),true))}; draw(); shakeT=setInterval(draw,120); $("total").textContent="Đang lắc…"; return}
+  box.textContent=""; for(var i=0;i<3;i++) box.appendChild(die(S.phase==="result"&&S.dice?S.dice[i]:0));
+  if(S.phase==="result"&&S.result){var r=S.result; $("total").innerHTML=""; var t=el("span",null,S.dice.join(" + ")+" = "+r.total+" · "); var w=el("b",null,r.bao?"BÃO":(r.side==="tai"?"TÀI":"XỈU")); w.style.color=r.bao?"var(--gold)":r.side==="tai"?"var(--tai)":"var(--xiu)"; $("total").append(t,w)}
+  else $("total").textContent=S.phase==="betting"?"Mời đặt cửa":"";
+}
+function render(prev){
+  if(!S) return;
+  $("phien").textContent="Phiên #"+S.phien;
+  $("phase").textContent=S.phase==="betting"?"Đang nhận cược":S.phase==="rolling"?"Đang lắc xúc xắc":S.phase==="result"?"Trả thưởng":"Chờ người chơi";
+  ["tai","xiu"].forEach(function(k){var K=k==="tai"?"Tai":"Xiu", sm=S.sum[k];
+    $("amt"+K).textContent=fmt(sm.amt); $("n"+K).textContent=sm.n+" người";
+    $("mine"+K).textContent=S.myBet&&S.myBet.side===k?"Bạn đặt "+fmt(S.myBet.amt):"";
+    var sd=$("side"+K); sd.classList.toggle("dis",S.phase!=="betting"); sd.classList.toggle("won",S.phase==="result"&&S.result&&!S.result.bao&&S.result.side===k)});
+  $("cancelBtn").hidden=!(S.phase==="betting"&&S.myBet);
+  if(!prev||prev.phase!==S.phase||prev.phien!==S.phien) renderDice();
+  var msg=$("msg"); msg.className="msg"; msg.textContent="";
+  if(S.phase==="result"&&S.result){var r=S.result;
+    if(S.myBet){var n=r.net[pid]||0; if(r.refund) msg.textContent=r.bao?"Ra bão! Hoàn lại "+fmt(S.myBet.amt)+".":"Chỉ một cửa có người đặt, hoàn tiền."; else if(n>0){msg.textContent="Bạn thắng +"+fmt(n)+" 🎉"; msg.classList.add("win")} else {msg.textContent="Bạn thua −"+fmt(-n); msg.classList.add("lose")}}
+    else msg.textContent=r.refund&&Object.keys(r.net).length?"Hoàn tiền phiên này.":"Bạn không đặt phiên này."}
+  else if(S.phase==="betting"&&S.sum.tai.amt+S.sum.xiu.amt>0&&S.myBet){var mine=S.myBet, other=S.sum[mine.side==="tai"?"xiu":"tai"].amt, same=S.sum[mine.side].amt;
+    msg.textContent=other?"Nếu "+(mine.side==="tai"?"Tài":"Xỉu")+" thắng, bạn ăn khoảng +"+fmt(Math.floor(other*mine.amt/same)):"Chưa ai đặt cửa bên kia, nếu vậy sẽ hoàn tiền."}
+  var road=$("road"); road.textContent=""; S.history.forEach(function(h){var s=el("span",h.bao?"b":h.side==="tai"?"t":"x",String(h.total)); s.title="#"+h.phien+": "+h.dice.join("-"); road.appendChild(s)});
+  var bb=$("betsBox"), bl=$("bets"); bl.textContent=""; bb.hidden=!(S.bets&&S.bets.length);
+  (S.bets||[]).forEach(function(b){var li=el("li"); li.append(el("span","nm",b.name+" · "+(b.side==="tai"?"Tài":"Xỉu")+" "+fmt(b.amt))); var v=el("span",S.phase==="result"?(b.net>0?"pos":b.net<0?"neg":"muted"):"muted",S.phase==="result"?(b.net>0?"+":b.net<0?"−":"±")+fmt(b.net):"…"); li.append(v); bl.appendChild(li)});
+  var bx=$("bxh"); bx.textContent=""; if(!S.bxh.length) bx.appendChild(el("li","muted","Chưa có ai thắng thua."));
+  S.bxh.forEach(function(r,i){var li=el("li"); li.append(el("span","nm",(i+1)+". "+r.name+(r.pid===pid?" (bạn)":"")), el("span",r.total>0?"pos":r.total<0?"neg":"muted",(r.total>0?"+":r.total<0?"−":"")+fmt(r.total))); bx.appendChild(li)});
+  var lg=$("log"); lg.textContent=""; S.log.slice().reverse().forEach(function(t){lg.appendChild(el("li",null,t))}); if(!S.log.length) lg.appendChild(el("li","muted","Chưa có phiên nào."));
+  tick();
+}
+function tick(){if(!S) return; var left=Math.max(0,S.deadline-(Date.now()+offset)); var sl=Math.ceil(left/1000);
+  $("timer").textContent=S.phase==="betting"?sl+"s":S.phase==="result"?"Phiên mới "+sl+"s":"…";
+  $("timer").style.color=S.phase==="betting"&&sl<=5?"var(--lose)":"";
+  if(S.phase==="betting"&&S.myBet&&sl<=5&&sl>0&&sl!==tick.ls){tick.ls=sl; if(window.SFX) SFX.play("tick")}}
+setInterval(tick,250);
+})();
+</script>
+</body>
+</html>

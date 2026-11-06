@@ -137,6 +137,7 @@ p{margin:0}
 .log{list-style:none;margin:0;padding:0;max-height:240px;overflow:auto;font-size:13px;display:flex;flex-direction:column;gap:4px}
 .result{padding:16px;display:flex;flex-direction:column;gap:10px;border-color:var(--gold);box-shadow:4px 4px 0 var(--gold)}
 .result ul{margin:0;padding-left:18px;font-size:14px;display:flex;flex-direction:column;gap:3px}
+.seatc .lv{font-weight:800;font-size:12.5px;font-variant-numeric:tabular-nums}.seatc .lv.pos{color:var(--win)}.seatc .lv.neg{color:var(--lose)}
 .nets{display:flex;flex-wrap:wrap;gap:8px}
 .nets>span{border:2px solid var(--ink);border-radius:99px;padding:2px 10px;font-weight:600;font-size:14px}
 .qbar{flex-direction:row;flex-wrap:wrap;align-items:center;gap:10px;padding:12px 16px}
@@ -199,6 +200,7 @@ body.cute .hand .c.sel{box-shadow:0 0 0 3px #FF5C8A,0 2px 0 #F7A8C8}
       <a class="pill" href="/">✊ Oẳn tù tì</a>
       <a class="pill" href="/ca-ngua">🐴 Cá ngựa</a>
       <a class="pill" href="/caro">⭕ Caro</a>
+      <a class="pill" href="/tai-xiu">🎲 Tài xỉu</a>
       <button class="pill" id="roomBtn" hidden><span class="dot"></span><span id="roomLb">Phòng chung</span> · Mời bạn</button>
       <button class="pill" id="adminBtn" title="Đăng nhập tài khoản chủ phòng">🔑 Chủ phòng</button>
       <button class="pill" id="sndBtn" title="Bật/tắt âm thanh">🔊 Âm thanh</button>
@@ -429,7 +431,7 @@ function seatName(s){var x=S_.seats[s]; return x?x.name:"Ghế "+(s+1)}
 /* ----- lobby ----- */
 var RULES={
   sam:[],
-  phom:["Chia 9 lá, người đánh đầu 10 lá. Mỗi lượt: ăn lá vừa đánh của người trước (nếu tạo được phỏm) hoặc bốc, rồi đánh 1 lá.","Phỏm: 3–4 lá cùng số, hoặc từ 3 lá liên tiếp cùng chất (A thấp, không vòng K–A).","Lá đã ăn phải nằm trong phỏm, mỗi phỏm chỉ chứa 1 lá ăn; không được đánh lá đã ăn.","Mỗi người đánh đủ 4 lá thì hạ phỏm và tự gửi bài vào phỏm người khác. Điểm rác thấp nhất là Nhất.","Trả cho Nhất: Nhì <b>1</b> · Ba <b>2</b> · Bét <b>3</b> · Móm (không có phỏm) <b>4</b> ván.","Ù (cả bài thành phỏm, dư tối đa 1 lá): mỗi người trả <b>5</b> ván. Bị ăn cây chốt: trả người ăn thêm <b>4</b> ván.","Mỗi lượt 20 giây, hết giờ tự bốc và tự đánh lá rác lớn nhất."],
+  phom:["Chia 9 lá, người đánh đầu 10 lá. Mỗi lượt: ăn lá vừa đánh của người trước (nếu tạo được phỏm) hoặc bốc, rồi đánh 1 lá.","Phỏm: 3–4 lá cùng số, hoặc từ 3 lá liên tiếp cùng chất (A thấp, không vòng K–A).","Lá đã ăn phải nằm trong phỏm, mỗi phỏm chỉ chứa 1 lá ăn; không được đánh lá đã ăn.","Mỗi người đánh đủ 4 lá thì hạ phỏm và tự gửi bài vào phỏm người khác. Điểm rác thấp nhất là Nhất.","<b>Bị ăn bài trả ngay</b> cho người ăn: cây vòng 1 trả <b>1</b> ván, vòng 2 trả <b>2</b>, vòng 3 trả <b>3</b>, cây chốt (vòng 4) trả <b>4</b> ván. Tiền cộng/trừ ngay vào BXH.","Hết ván trả cho Nhất: Nhì <b>1</b> · Ba <b>2</b> · Bét <b>3</b> · Móm (không có phỏm) <b>4</b> ván.","Ù (cả bài thành phỏm, dư tối đa 1 lá): mỗi người trả <b>5</b> ván.","Mỗi lượt 20 giây, hết giờ tự bốc và tự đánh lá rác lớn nhất."],
   bacay:[]
 };
 var QUICK={sam:[500,1000,2000,5000],phom:[2000,5000,10000,20000],bacay:[5000,10000,20000,50000]};
@@ -479,7 +481,7 @@ function backs(n){var m=el("div","mini"); for(var i=0;i<n;i++) m.appendChild(car
 function bcText(h){var st=(S_&&S_.bcRules&&S_.bcRules.style)||"bac";
   if(st==="nam"){if(h.every(function(c){return R(c)>=10})) return "Ba cào"; var p=h.reduce(function(a,c){return a+(R(c)<9?R(c)+1:0)},0)%10; return p?p+" nút":"Bù"}
   var q=h.reduce(function(a,c){return a+R(c)+1},0)%10; return (q||10)+" nút"}
-function samRulesText(dt){var r=["Thứ tự: 3 < 4 < … < K < A < 2 (heo), không xét chất.","Đánh đơn, đôi, sám (3 lá), tứ quý hoặc sảnh từ 3 lá. Sảnh có 2 chỉ được khi bắt đầu từ A hoặc 2 (A-2-3, 2-3-4…), là sảnh nhỏ nhất; không được vòng K-A-2. Chặn bằng bộ cùng kiểu, cùng số lá, lớn hơn.","Tứ quý chặt được heo: người bị chặt trả <b>10 lá</b> cho người chặt.","Thua trả <b>số lá còn lại</b> × tiền/lá. Còn heo trên tay: mỗi con tính thêm <b>5 lá</b> (thối heo).","Chưa đánh được lá nào (cóng): trả <b>20 lá</b>.","Báo Sâm trong 10 giây đầu: đánh hết mà không ai chặn được thì mỗi người trả <b>20 lá</b>; bị chặn thì đền mỗi người <b>20 lá</b>.","Mỗi lượt 20 giây. Hết giờ: đang cầm cái thì tự đánh lá nhỏ nhất; đang phải chặn thì máy tự chặn bằng bộ nhỏ nhất, không chặn được mới bỏ lượt."];
+function samRulesText(dt){var r=["Thứ tự: 3 < 4 < … < K < A < 2 (heo), không xét chất.","Đánh đơn, đôi, sám (3 lá), tứ quý hoặc sảnh từ 3 lá. Sảnh có 2 chỉ được khi bắt đầu từ A hoặc 2 (A-2-3, 2-3-4…), là sảnh nhỏ nhất; không được vòng K-A-2. Chặn bằng bộ cùng kiểu, cùng số lá, lớn hơn.","Tứ quý chặt được heo: người bị chặt trả <b>10 lá</b> cho người chặt, trừ tiền ngay lúc chặt.","Thua trả <b>số lá còn lại</b> × tiền/lá. Còn heo trên tay: mỗi con tính thêm <b>5 lá</b> (thối heo).","Chưa đánh được lá nào (cóng): trả <b>20 lá</b>.","Báo Sâm trong 10 giây đầu: đánh hết mà không ai chặn được thì mỗi người trả <b>20 lá</b>; bị chặn thì đền mỗi người <b>20 lá</b>.","Mỗi lượt 20 giây. Hết giờ: đang cầm cái thì tự đánh lá nhỏ nhất; đang phải chặn thì máy tự chặn bằng bộ nhỏ nhất, không chặn được mới bỏ lượt."];
   if(dt){r.splice(2,0,"<b>Đôi thông (đang bật):</b> từ 3 đôi liên tiếp, không có heo (ví dụ 33-44-55). Chặn bằng đôi thông cùng số đôi, lớn hơn.","3 đôi thông chặt <b>1 heo</b>. 4 đôi thông chặt <b>đôi heo</b>, tứ quý và 3 đôi thông. Tứ quý chặt được 3 đôi thông.","Bị chặt heo trả <b>10 lá</b> mỗi con heo (đôi heo là 20 lá).")}
   return r}
 function bcRulesText(br){var r=[];
@@ -508,6 +510,7 @@ function renderTable(){
     if(GAME==="phom") info.textContent=cnt+" lá · đánh "+t.discCount[s]+"/4";
     if(GAME==="bacay") info.textContent=res&&t.hands[s]?bcText(t.hands[s]):t.shown[s]?"Đã lật":"Đang nặn…";
     chip.appendChild(info);
+    var lv=p&&S_.live?S_.live[p.pid]:0; if(lv&&!res){var lb=el("div","lv "+(lv>0?"pos":"neg"),(lv>0?"+":"−")+Math.abs(lv).toLocaleString("vi-VN")); chip.appendChild(lb)}
     if(GAME==="sam"&&!isMe&&play) chip.appendChild(backs(cnt));
     opps.appendChild(chip);
     // cards in front of this player
@@ -615,8 +618,7 @@ function render(){
   $("lobby").hidden=!lobby; $("table").hidden=lobby||!S_.t;
   if(lobby){renderLobby(); $("mePanel").hidden=true}
   else if(S_.t){renderTable(); renderMe();
-    if(S_.phase==="playing"&&isHost()){var a=$("acts"); var hb=el("button","btn sm ghost",Date.now()-hostEndArm<4000?"Bấm lần nữa để huỷ ván":"Huỷ ván"); hb.onclick=function(){if(Date.now()-hostEndArm<4000){hostEndArm=0; socket.emit("lobby")} else {hostEndArm=Date.now(); render()}}; var rb=el("button","btn sm",Date.now()-hostRsArm<4000?"Bấm lần nữa để chia lại":"Chia lại từ đầu"); rb.onclick=function(){if(Date.now()-hostRsArm<4000){hostRsArm=0; socket.emit("restart")} else {hostRsArm=Date.now(); render(); setTimeout(render,4100)}};
-    if(S_.mySeat>=0){a.appendChild(rb); a.appendChild(hb)} else {$("center").appendChild(rb); $("center").appendChild(hb)}}}
+    }
   renderQueue(); renderResult(); renderSide(); tick();
 }
 function renderQueue(){

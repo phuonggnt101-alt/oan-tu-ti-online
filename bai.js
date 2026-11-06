@@ -162,6 +162,15 @@ function attach(io) {
   function applyDeltas(room, deltas) {
     for (const pid in deltas) room.bxh.set(pid, (room.bxh.get(pid) || 0) + deltas[pid]);
   }
+  const money = (n) => String(Math.abs(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  // Trả tiền ngay trong ván (ăn bài, chặt heo): cộng/trừ BXH lập tức và ghi vào diễn biến.
+  function livePay(room, fromSeat, toSeat, mult, why) {
+    const st = room.st, from = seatPid(room, fromSeat), to = seatPid(room, toSeat), amt = mult * room.stake;
+    st.live = st.live || {}; st.liveRows = st.liveRows || [];
+    pay(room, st.live, from, to, amt); applyDeltas(room, { [from]: -amt, [to]: amt });
+    const row = "💸 " + nameOf(room, from) + " trả " + nameOf(room, to) + " " + mult + " " + GAMES[room.game].unit + " (" + money(amt) + ")" + (why ? " · " + why : "");
+    st.liveRows.push(row); log(room, row);
+  }
 
   // ---------- view per viewer ----------
   function view(room, pid) {
@@ -175,7 +184,7 @@ function attach(io) {
       seats: room.seats.map((p) => p && { pid: p, name: nameOf(room, p), online: on.has(p) }),
       bxh: [...room.bxh.entries()].map(([p, v]) => ({ pid: p, name: nameOf(room, p), total: v })).sort((a, b) => b.total - a.total),
       spectators: [...room.people.keys()].filter((p) => on.has(p) && !room.seats.includes(p)).map((p) => nameOf(room, p)),
-      log: room.log.slice(-25), result: room.result,
+      log: room.log.slice(-25), result: room.result, live: (st && st.live) || {},
       queue: room.queue.map((p) => nameOf(room, p)), queuePos: room.queue.indexOf(pid),
     };
     if (!st) return base;
@@ -276,7 +285,7 @@ function attach(io) {
     st.hands[s] = st.hands[s].filter((c) => !cards.includes(c));
     st.playedAny[s] = true;
     const who = nameOf(room, seatPid(room, s));
-    if (isHeo(prev) && (combo.type === "four" || combo.type === "dthong")) { st.chops.push({ from: prev.by, to: s, n: prev.len }); log(room, "💥 " + who + " chặt " + (prev.len === 2 ? "đôi heo" : "heo") + " của " + nameOf(room, seatPid(room, prev.by)) + "!"); }
+    if (isHeo(prev) && (combo.type === "four" || combo.type === "dthong")) { log(room, "💥 " + who + " chặt " + (prev.len === 2 ? "đôi heo" : "heo") + " của " + nameOf(room, seatPid(room, prev.by)) + "!"); livePay(room, prev.by, s, 10 * prev.len, "bị chặt " + (prev.len === 2 ? "đôi heo" : "heo")); }
     st.lead = { ...combo, cards, by: s };
     log(room, who + (auto ? " (hết giờ)" : "") + " đánh " + cards.map(cardName).join(" "));
     if (st.baoSam != null && s !== st.baoSam) return samFinish(room, null, "Chặn Sâm"), null;
@@ -297,11 +306,11 @@ function attach(io) {
     if (reason === "Chặn Sâm") {
       const d = st.baoSam;
       for (const s of st.order) if (s !== d) pay(room, deltas, P(d), P(s), 20 * X);
-      rows.push(nameOf(room, P(d)) + " báo Sâm bị chặn, đền mỗi người 20 lá.");
+      rows.push(nameOf(room, P(d)) + " báo Sâm bị chặn, đền mỗi người 20 lá (" + money(20 * X) + ").");
       winner = st.lead.by;
     } else if (st.baoSam != null && winner === st.baoSam) {
       for (const s of st.order) if (s !== winner) pay(room, deltas, P(s), P(winner), 20 * X);
-      rows.push(nameOf(room, P(winner)) + " báo Sâm thành công, mỗi người trả 20 lá.");
+      rows.push(nameOf(room, P(winner)) + " báo Sâm thành công, mỗi người trả 20 lá (" + money(20 * X) + ").");
     } else {
       for (const s of st.order) {
         if (s === winner) continue;
@@ -310,10 +319,9 @@ function attach(io) {
         if (!st.playedAny[s]) { la = 20; note = "cóng"; }
         else { la = h.length + 5 * heo; note = h.length + " lá" + (heo ? " + thối " + heo + " heo" : ""); }
         pay(room, deltas, P(s), P(winner), la * X);
-        rows.push(nameOf(room, P(s)) + ": " + note + " = " + la + " lá");
+        rows.push(nameOf(room, P(s)) + ": " + note + " = " + la + " lá, trả " + nameOf(room, P(winner)) + " " + money(la * X));
       }
     }
-    for (const ch of st.chops) { const k = 10 * (ch.n || 1); pay(room, deltas, P(ch.from), P(ch.to), k * X); rows.push(nameOf(room, P(ch.from)) + " bị chặt " + (ch.n === 2 ? "đôi heo" : "heo") + ", trả " + nameOf(room, P(ch.to)) + " " + k + " lá"); }
     endRound(room, winner, deltas, rows);
   }
 
@@ -352,9 +360,10 @@ function attach(io) {
       const L = st.last, c = L.card;
       st.discards[L.by] = st.discards[L.by].filter((x) => x !== c);
       st.hands[s].push(c); st.hands[s].sort((a, b) => a - b); st.eaten[s].push(c); L.eaten = true;
-      const chot = st.discCount[L.by] >= 4;
+      const vong = Math.min(4, st.discCount[L.by] || 1), chot = vong >= 4;
       if (chot) st.chot.push({ from: L.by, to: s });
       log(room, who + " ăn " + cardName(c) + (chot ? " (cây chốt!)" : "") + ".");
+      livePay(room, L.by, s, vong, chot ? "bị ăn cây chốt" : "bị ăn cây vòng " + vong);
     } else {
       if (!st.deck.length) return "Hết bài để bốc.";
       const c = st.deck.pop(); st.hands[s].push(c); st.hands[s].sort((a, b) => a - b);
@@ -382,8 +391,7 @@ function attach(io) {
     if (uSeat != null) {
       st.laid[uSeat] = bestArrangement(st.hands[uSeat], st.eaten[uSeat]);
       for (const s of st.order) if (s !== uSeat) pay(room, deltas, P(s), P(uSeat), 5 * X);
-      rows.push("🎉 " + nameOf(room, P(uSeat)) + " Ù! Mỗi người trả 5 ván.");
-      for (const ch of st.chot) { pay(room, deltas, P(ch.from), P(ch.to), 4 * X); rows.push(nameOf(room, P(ch.from)) + " bị ăn cây chốt, trả thêm 4 ván."); }
+      rows.push("🎉 " + nameOf(room, P(uSeat)) + " Ù! Mỗi người trả 5 ván (" + money(5 * X) + ").");
       return endRound(room, uSeat, deltas, rows);
     }
     // hạ phỏm theo thứ tự, sau đó gửi bài
@@ -414,11 +422,10 @@ function attach(io) {
     rank.forEach((s, i) => {
       const mom = !st.laid[s].melds.length;
       const label = i === 0 ? "Nhất" : mom ? "Móm" : i === rank.length - 1 && rank.length > 2 ? "Bét" : ["", "Nhì", "Ba"][i];
-      const mult = i === 0 ? 0 : mom ? 4 : i;
+      const mult = i === 0 ? 0 : mom ? 4 : label === "Bét" ? 3 : i;
       if (mult) pay(room, deltas, P(s), P(winner), mult * X);
-      rows.push(label + ": " + nameOf(room, P(s)) + " · " + (mom ? "không có phỏm" : score(s) + " điểm") + (mult ? " · trả " + mult + " ván" : ""));
+      rows.push(label + ": " + nameOf(room, P(s)) + " · " + (mom ? "không có phỏm" : score(s) + " điểm") + (mult ? " · trả " + nameOf(room, P(winner)) + " " + mult + " ván (" + money(mult * X) + ")" : ""));
     });
-    for (const ch of st.chot) { pay(room, deltas, P(ch.from), P(ch.to), 4 * X); rows.push(nameOf(room, P(ch.from)) + " bị ăn cây chốt, trả " + nameOf(room, P(ch.to)) + " 4 ván."); }
     endRound(room, winner, deltas, rows);
   }
 
@@ -458,8 +465,10 @@ function attach(io) {
     applyDeltas(room, deltas);
     room.phase = "result"; clearTimeout(room.timer); room.deadline = 0;
     room.lastWinnerSeat = winnerSeat;
-    const w = seatPid(room, winnerSeat);
-    room.result = { winner: w, rows, net: deltas };
+    const w = seatPid(room, winnerSeat), st = room.st, net = { ...deltas };
+    if (st && st.live) for (const p in st.live) net[p] = (net[p] || 0) + st.live[p];
+    if (st && st.liveRows && st.liveRows.length) rows.push("Đã trả trong ván: " + st.liveRows.map((r) => r.replace("💸 ", "")).join("; ") + ".");
+    room.result = { winner: w, rows, net };
     seatQueue(room);
     log(room, "🏆 " + nameOf(room, w) + " thắng ván " + room.roundNo + ".");
     broadcast(room);
