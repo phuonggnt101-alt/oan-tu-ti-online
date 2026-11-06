@@ -158,7 +158,7 @@ p{margin:0}
 .seatc .av{width:24px;height:24px;font-size:13px}
 .seatc .nm{font-weight:700;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}
 .seatc .st{font-size:11px;opacity:.9}
-.front{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:3px;max-width:28%;z-index:1}
+.front{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:3px;max-width:28%;z-index:3}
 .front .row{flex-wrap:wrap;justify-content:center}
 .front .lbl,.center .lbl{font-size:12px;opacity:.9}
 .front .melds{align-items:center}
@@ -225,6 +225,7 @@ body.cute .hand .c.sel{box-shadow:0 0 0 3px #FF5C8A,0 2px 0 #F7A8C8}
         <p class="muted" id="specs"></p>
         <div class="stake"><label for="stakeIn"><b id="stakeLb">Tiền mỗi lá</b></label><input id="stakeIn" type="number" min="0" step="500" inputmode="numeric"><span class="muted" id="stakeNote"></span></div>
         <div class="stake" id="quick"></div>
+        <div class="stake" id="samRow" hidden><label for="samDt"><b>Đôi thông</b></label><select id="samDt"><option value="0">Tắt (luật Sâm gốc)</option><option value="1">Bật: được đánh và chặt bằng đôi thông</option></select></div>
         <div class="stake" id="bcRow" hidden><label for="bcStyle"><b>Kiểu bài</b></label><select id="bcStyle"><option value="bac">Ba cây miền Bắc (36 lá A–9)</option><option value="nam">Bài cào miền Nam (52 lá)</option></select><label for="bcPay"><b>Chia tiền</b></label><select id="bcPay"><option value="all">Nhất ăn tất</option><option value="532">Nhất 50 · Nhì 30 · Ba 20</option></select></div>
         <ul class="rulesList" id="rules"></ul>
         <div class="acts"><button class="btn" id="startBtn">Chia bài</button><button class="btn sm ghost" id="resetBtn">Đặt lại bảng xếp hạng</button><span class="muted" id="startHint"></span></div>
@@ -312,9 +313,16 @@ function samCombo(cards){var n=cards.length; if(!n) return null; var v=cards.map
   if(same&&n===3) return {type:"triple",len:3,top:v[0]};
   if(same&&n===4) return {type:"four",len:4,top:v[0]};
   if(n>=3&&v[n-1]<12&&v.every(function(x,i){return i===0||x===v[i-1]+1})) return {type:"straight",len:n,top:v[n-1]};
+  var r=cards.map(R).sort(function(a,b){return a-b});
+  if(n>=3&&r[0]<=1&&r.indexOf(1)>=0&&r.every(function(x,i){return i===0||x===r[i-1]+1})) return {type:"straight",len:n,top:sv(r[n-1]*4)-2};
+  if(S_&&S_.samRules&&S_.samRules.doiThong&&n>=6&&n%2===0&&v[n-1]<12&&v.every(function(x,i){return i%2?x===v[i-1]:i===0||x===v[i-1]+1})) return {type:"dthong",len:n/2,top:v[n-1]};
   return null}
-function samBeats(a,l){if(!l) return true; if(l.type==="single"&&l.top===12&&a.type==="four") return true; return a.type===l.type&&a.len===l.len&&a.top>l.top}
-var COMBO={single:"Đơn",pair:"Đôi",triple:"Sám",four:"Tứ quý",straight:"Sảnh"};
+function isHeo(l){return l&&(l.type==="single"||l.type==="pair")&&l.top===12}
+function samBeats(a,l){if(!l) return true; if(l.type==="single"&&l.top===12&&a.type==="four") return true;
+  if(a.type==="four"&&l.type==="dthong"&&l.len===3) return true;
+  if(a.type==="dthong"){if(l.type==="single"&&l.top===12) return true; if(a.len>=4&&(isHeo(l)||l.type==="four"||(l.type==="dthong"&&l.len<a.len))) return true}
+  return a.type===l.type&&a.len===l.len&&a.top>l.top}
+var COMBO={single:"Đơn",pair:"Đôi",triple:"Sám",four:"Tứ quý",straight:"Sảnh",dthong:"Đôi thông"};
 function meldCands(hand){var out=[],byR={},byS=[[],[],[],[]];
   hand.forEach(function(c){(byR[R(c)]=byR[R(c)]||[]).push(c); byS[S(c)].push(c)});
   Object.keys(byR).forEach(function(k){var g=byR[k]; if(g.length===3) out.push(g.slice()); if(g.length===4){out.push(g.slice()); for(var i=0;i<4;i++) out.push(g.filter(function(_,j){return j!==i}))}});
@@ -419,7 +427,7 @@ function seatName(s){var x=S_.seats[s]; return x?x.name:"Ghế "+(s+1)}
 
 /* ----- lobby ----- */
 var RULES={
-  sam:["Thứ tự: 3 < 4 < … < K < A < 2 (heo), không xét chất.","Đánh đơn, đôi, sám (3 lá), tứ quý hoặc sảnh từ 3 lá (sảnh không có 2). Chặn bằng bộ cùng kiểu, cùng số lá, lớn hơn.","Tứ quý chặt được heo: người bị chặt trả <b>10 lá</b> cho người chặt.","Thua trả <b>số lá còn lại</b> × tiền/lá. Còn heo trên tay: mỗi con tính thêm <b>5 lá</b> (thối heo).","Chưa đánh được lá nào (cóng): trả <b>20 lá</b>.","Báo Sâm trong 10 giây đầu: đánh hết mà không ai chặn được thì mỗi người trả <b>20 lá</b>; bị chặn thì đền mỗi người <b>20 lá</b>.","Mỗi lượt 20 giây. Hết giờ: đang cầm cái thì tự đánh lá nhỏ nhất, không thì tự bỏ lượt."],
+  sam:[],
   phom:["Chia 9 lá, người đánh đầu 10 lá. Mỗi lượt: ăn lá vừa đánh của người trước (nếu tạo được phỏm) hoặc bốc, rồi đánh 1 lá.","Phỏm: 3–4 lá cùng số, hoặc từ 3 lá liên tiếp cùng chất (A thấp, không vòng K–A).","Lá đã ăn phải nằm trong phỏm, mỗi phỏm chỉ chứa 1 lá ăn; không được đánh lá đã ăn.","Mỗi người đánh đủ 4 lá thì hạ phỏm và tự gửi bài vào phỏm người khác. Điểm rác thấp nhất là Nhất.","Trả cho Nhất: Nhì <b>1</b> · Ba <b>2</b> · Bét <b>3</b> · Móm (không có phỏm) <b>4</b> ván.","Ù (cả bài thành phỏm, dư tối đa 1 lá): mỗi người trả <b>5</b> ván. Bị ăn cây chốt: trả người ăn thêm <b>4</b> ván.","Mỗi lượt 20 giây, hết giờ tự bốc và tự đánh lá rác lớn nhất."],
   bacay:[]
 };
@@ -445,6 +453,7 @@ function renderLobby(){
   else if(mine>=0&&(!S_.hostOnline||!S_.hostSeated)){var cl=el("button","btn sm","Nhận chủ phòng"); cl.onclick=function(){socket.emit("claimHost")}; hl.appendChild(cl)}
   else hl.appendChild(el("span","muted","Muốn làm chủ phòng thì nhờ "+S_.hostName+" bấm “Nhường 👑” ở ghế của bạn."));
   var q=$("quick"); q.textContent=""; if(host) QUICK[GAME].forEach(function(v){var b=el("button","btn sm ghost",v.toLocaleString("vi-VN")); b.onclick=function(){socket.emit("stake",v)}; q.appendChild(b)});
+  $("samRow").hidden=GAME!=="sam"; if(GAME==="sam"){var sd=$("samDt"), dtOn=!!(S_.samRules&&S_.samRules.doiThong); if(document.activeElement!==sd) sd.value=dtOn?"1":"0"; sd.disabled=!host; RULES.sam=samRulesText(dtOn)}
   $("bcRow").hidden=GAME!=="bacay"; if(GAME==="bacay"){var bs=$("bcStyle"), bpy=$("bcPay"), br=S_.bcRules||{style:"bac",pay:"all"}; if(document.activeElement!==bs) bs.value=br.style; if(document.activeElement!==bpy) bpy.value=br.pay; bs.disabled=bpy.disabled=!host; RULES.bacay=bcRulesText(br)}
   var ul=$("rules"); ul.textContent=""; RULES[GAME].forEach(function(t){var li=el("li"); li.innerHTML=t; ul.appendChild(li)});
   var n=S_.seats.filter(Boolean).length, min=2;
@@ -452,6 +461,7 @@ function renderLobby(){
   $("startHint").textContent=host?(n<min?"Cần ít nhất 2 người ngồi.":n+" người sẵn sàng."):"Chờ chủ phòng chia bài.";
 }
 $("stakeIn").addEventListener("change",function(){socket.emit("stake",Number($("stakeIn").value))});
+$("samDt").addEventListener("change",function(){socket.emit("samRules",{doiThong:$("samDt").value==="1"})});
 function sendBc(){socket.emit("bcRules",{style:$("bcStyle").value,pay:$("bcPay").value})}
 $("bcStyle").addEventListener("change",sendBc); $("bcPay").addEventListener("change",sendBc);
 $("startBtn").addEventListener("click",function(){socket.emit("start")});
@@ -468,6 +478,9 @@ function backs(n){var m=el("div","mini"); for(var i=0;i<n;i++) m.appendChild(car
 function bcText(h){var st=(S_&&S_.bcRules&&S_.bcRules.style)||"bac";
   if(st==="nam"){if(h.every(function(c){return R(c)>=10})) return "Ba cào"; var p=h.reduce(function(a,c){return a+(R(c)<9?R(c)+1:0)},0)%10; return p?p+" nút":"Bù"}
   var q=h.reduce(function(a,c){return a+R(c)+1},0)%10; return (q||10)+" nút"}
+function samRulesText(dt){var r=["Thứ tự: 3 < 4 < … < K < A < 2 (heo), không xét chất.","Đánh đơn, đôi, sám (3 lá), tứ quý hoặc sảnh từ 3 lá. Sảnh có 2 chỉ được khi bắt đầu từ A hoặc 2 (A-2-3, 2-3-4…), là sảnh nhỏ nhất; không được vòng K-A-2. Chặn bằng bộ cùng kiểu, cùng số lá, lớn hơn.","Tứ quý chặt được heo: người bị chặt trả <b>10 lá</b> cho người chặt.","Thua trả <b>số lá còn lại</b> × tiền/lá. Còn heo trên tay: mỗi con tính thêm <b>5 lá</b> (thối heo).","Chưa đánh được lá nào (cóng): trả <b>20 lá</b>.","Báo Sâm trong 10 giây đầu: đánh hết mà không ai chặn được thì mỗi người trả <b>20 lá</b>; bị chặn thì đền mỗi người <b>20 lá</b>.","Mỗi lượt 20 giây. Hết giờ: đang cầm cái thì tự đánh lá nhỏ nhất; đang phải chặn thì máy tự chặn bằng bộ nhỏ nhất, không chặn được mới bỏ lượt."];
+  if(dt){r.splice(2,0,"<b>Đôi thông (đang bật):</b> từ 3 đôi liên tiếp, không có heo (ví dụ 33-44-55). Chặn bằng đôi thông cùng số đôi, lớn hơn.","3 đôi thông chặt <b>1 heo</b>. 4 đôi thông chặt <b>đôi heo</b>, tứ quý và 3 đôi thông. Tứ quý chặt được 3 đôi thông.","Bị chặt heo trả <b>10 lá</b> mỗi con heo (đôi heo là 20 lá).")}
+  return r}
 function bcRulesText(br){var r=[];
   r.push("Mỗi người góp trước <b>tiền/ván</b>, chia mỗi người 3 lá.");
   if(br.style==="nam"){r.push("<b>Bài cào miền Nam:</b> đủ 52 lá, 10/J/Q/K tính 10 điểm. Lấy hàng đơn vị của tổng, tròn chục là <b>Bù</b> (thấp nhất)."); r.push("<b>Ba cào</b> (3 lá J, Q, K bất kỳ) thắng luôn. Không xét chất: bằng điểm là hoà.")}
@@ -497,10 +510,10 @@ function renderTable(){
     if(GAME==="sam"&&!isMe&&play) chip.appendChild(backs(cnt));
     opps.appendChild(chip);
     // cards in front of this player
-    var fr=el("div","front"); fr.style.left=(50+(narrow?22:23)*cx)+"%"; fr.style.top=(50+(narrow?24:21)*cy)+"%";
+    var fr=el("div","front"); fr.style.left=(50+(narrow?20:20)*cx)+"%"; fr.style.top=(50+(narrow?22:19)*cy)+"%";
     if(GAME==="sam"){
       if(res&&t.hands&&t.hands[s]&&t.hands[s].length){var rr=el("div","row"); t.hands[s].forEach(function(c){rr.appendChild(cardEl(c,{sm:1}))}); fr.appendChild(rr)}
-      else if(t.lead&&t.lead.by===s){var rl=el("div","row"); var small=t.lead.cards.length>4||narrow; t.lead.cards.forEach(function(c){rl.appendChild(cardEl(c,{sm:small}))}); fr.appendChild(rl); fr.appendChild(el("div","lbl",COMBO[t.lead.type]))}
+      else if(t.lead&&t.lead.by===s){var rl=el("div","row"); var small=t.lead.cards.length>=4||narrow; t.lead.cards.forEach(function(c){rl.appendChild(cardEl(c,{sm:small}))}); fr.appendChild(rl); fr.appendChild(el("div","lbl",COMBO[t.lead.type]))}
     }
     if(GAME==="phom"){
       if(t.laid&&t.laid[s]) fr.appendChild(meldView(t.laid[s]));

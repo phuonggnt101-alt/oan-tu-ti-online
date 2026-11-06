@@ -11,7 +11,7 @@ function shuffled() { const d = [...Array(52).keys()]; for (let i = 51; i > 0; i
 // ================= SÂM =================
 // Thứ tự: 3 < 4 < ... < K < A < 2, không xét chất
 const sv = (c) => (R(c) + 11) % 13; // 3→0 ... K→10, A→11, 2→12
-function samCombo(cards) {
+function samCombo(cards, dt) {
   const n = cards.length; if (!n) return null;
   const v = cards.map(sv).sort((a, b) => a - b);
   const same = v.every((x) => x === v[0]);
@@ -20,11 +20,18 @@ function samCombo(cards) {
   if (same && n === 3) return { type: "triple", len: 3, top: v[0] };
   if (same && n === 4) return { type: "four", len: 4, top: v[0] };
   if (n >= 3 && v[n - 1] < 12 && v.every((x, i) => i === 0 || x === v[i - 1] + 1)) return { type: "straight", len: n, top: v[n - 1] };
+  // sảnh nhỏ có heo: bắt đầu từ A hoặc 2 (A-2-3, 2-3-4, A-2-3-4…), nhỏ hơn mọi sảnh thường cùng số lá
+  const r = cards.map(R).sort((a, b) => a - b);
+  if (n >= 3 && r[0] <= 1 && r.includes(1) && r.every((x, i) => i === 0 || x === r[i - 1] + 1)) return { type: "straight", len: n, top: sv(r[n - 1] * 4) - 2 };
+  // đôi thông (chỉ khi chủ phòng bật): từ 3 đôi liên tiếp, không có heo
+  if (dt && n >= 6 && n % 2 === 0 && v[n - 1] < 12 && v.every((x, i) => (i % 2 ? x === v[i - 1] : i === 0 || x === v[i - 1] + 1))) return { type: "dthong", len: n / 2, top: v[n - 1] };
   return null;
 }
+const isHeo = (l) => l && (l.type === "single" || l.type === "pair") && l.top === 12;
 // Hết giờ khi đang phải chặn: tìm bộ nhỏ nhất chặn được bài trên bàn (null nếu không có).
 function samAutoBeat(hand, lead) {
   const by = {}; for (const c of hand) (by[sv(c)] = by[sv(c)] || []).push(c);
+  if (lead.type === "dthong") return null;
   if (lead.type === "straight") {
     for (let t = lead.top + 1; t <= 11; t++) {
       const cs = []; for (let v = t - lead.len + 1; v <= t; v++) { if (!by[v]) break; cs.push(by[v][0]); }
@@ -39,6 +46,11 @@ function samAutoBeat(hand, lead) {
 function samBeats(a, lead) {
   if (!lead) return true;
   if (lead.type === "single" && lead.top === 12 && a.type === "four") return true; // tứ quý chặt heo
+  if (a.type === "four" && lead.type === "dthong" && lead.len === 3) return true; // tứ quý chặt 3 đôi thông
+  if (a.type === "dthong") {
+    if (lead.type === "single" && lead.top === 12) return true; // 3 đôi thông trở lên chặt 1 heo
+    if (a.len >= 4 && (isHeo(lead) || lead.type === "four" || (lead.type === "dthong" && lead.len < a.len))) return true; // 4 đôi thông chặt đôi heo, tứ quý, 3 đôi thông
+  }
   return a.type === lead.type && a.len === lead.len && a.top > lead.top;
 }
 
@@ -128,7 +140,7 @@ function attach(io) {
     if (!r) {
       const G = GAMES[game];
       r = { key, game, id, people: new Map(), sockets: new Map(), seats: Array(G.max).fill(null), host: null,
-        stake: G.stake, bcRules: { style: "bac", pay: "all" }, admins: new Set(), queue: [], phase: "lobby", st: null, timer: null, deadline: 0, bxh: new Map(), log: [], result: null, lastWinner: null, emptySince: null, roundNo: 0 };
+        stake: G.stake, bcRules: { style: "bac", pay: "all" }, samRules: { doiThong: false }, admins: new Set(), queue: [], phase: "lobby", st: null, timer: null, deadline: 0, bxh: new Map(), log: [], result: null, lastWinner: null, emptySince: null, roundNo: 0 };
       rooms.set(key, r);
     }
     return r;
@@ -159,7 +171,7 @@ function attach(io) {
       game: room.game, gameName: GAMES[room.game].name, unit: GAMES[room.game].unit, room: room.id, me: pid, host: room.host,
       isAdmin: room.admins.has(pid), hostLocked: [...room.admins].some((p) => on.has(p)),
       hostName: nameOf(room, room.host), hostSeated: room.seats.includes(room.host), hostOnline: on.has(room.host),
-      phase: room.phase, stake: room.stake, bcRules: room.bcRules, now: Date.now(), deadline: room.deadline, mySeat, roundNo: room.roundNo,
+      phase: room.phase, stake: room.stake, bcRules: room.bcRules, samRules: room.samRules, now: Date.now(), deadline: room.deadline, mySeat, roundNo: room.roundNo,
       seats: room.seats.map((p) => p && { pid: p, name: nameOf(room, p), online: on.has(p) }),
       bxh: [...room.bxh.entries()].map(([p, v]) => ({ pid: p, name: nameOf(room, p), total: v })).sort((a, b) => b.total - a.total),
       spectators: [...room.people.keys()].filter((p) => on.has(p) && !room.seats.includes(p)).map((p) => nameOf(room, p)),
@@ -242,7 +254,7 @@ function attach(io) {
     schedule(room, GAMES.sam.turnMs, () => {
       const st = room.st, s = st.turn;
       if (!st.lead) { const c = st.hands[s].slice().sort((a, b) => sv(a) - sv(b))[0]; samPlay(room, s, [c], true); }
-      else { const cs = samAutoBeat(st.hands[s], st.lead); if (cs) samPlay(room, s, cs, true); else samPass(room, s, true); }
+      else { const cs = samAutoBeat(st.hands[s], st.lead); if (!cs || samPlay(room, s, cs, true)) samPass(room, s, true); }
     });
   }
   function samAdvance(room) {
@@ -257,14 +269,14 @@ function attach(io) {
     const st = room.st;
     if (st.step !== "play" || st.turn !== s) return "Chưa tới lượt bạn.";
     if (!cards.length || new Set(cards).size !== cards.length || !cards.every((c) => st.hands[s].includes(c))) return "Lá bài không hợp lệ.";
-    const combo = samCombo(cards);
+    const combo = samCombo(cards, room.samRules.doiThong);
     if (!combo) return "Bộ bài không hợp lệ (đơn, đôi, sám, tứ quý hoặc sảnh từ 3 lá, sảnh không có 2).";
     if (!samBeats(combo, st.lead)) return "Bộ này không chặn được bài trên bàn.";
     const prev = st.lead;
     st.hands[s] = st.hands[s].filter((c) => !cards.includes(c));
     st.playedAny[s] = true;
     const who = nameOf(room, seatPid(room, s));
-    if (prev && prev.type === "single" && prev.top === 12 && combo.type === "four") { st.chops.push({ from: prev.by, to: s }); log(room, "💥 " + who + " chặt heo của " + nameOf(room, seatPid(room, prev.by)) + "!"); }
+    if (isHeo(prev) && (combo.type === "four" || combo.type === "dthong")) { st.chops.push({ from: prev.by, to: s, n: prev.len }); log(room, "💥 " + who + " chặt " + (prev.len === 2 ? "đôi heo" : "heo") + " của " + nameOf(room, seatPid(room, prev.by)) + "!"); }
     st.lead = { ...combo, cards, by: s };
     log(room, who + (auto ? " (hết giờ)" : "") + " đánh " + cards.map(cardName).join(" "));
     if (st.baoSam != null && s !== st.baoSam) return samFinish(room, null, "Chặn Sâm"), null;
@@ -301,7 +313,7 @@ function attach(io) {
         rows.push(nameOf(room, P(s)) + ": " + note + " = " + la + " lá");
       }
     }
-    for (const ch of st.chops) { pay(room, deltas, P(ch.from), P(ch.to), 10 * X); rows.push(nameOf(room, P(ch.from)) + " bị chặt heo, trả " + nameOf(room, P(ch.to)) + " 10 lá"); }
+    for (const ch of st.chops) { const k = 10 * (ch.n || 1); pay(room, deltas, P(ch.from), P(ch.to), k * X); rows.push(nameOf(room, P(ch.from)) + " bị chặt " + (ch.n === 2 ? "đôi heo" : "heo") + ", trả " + nameOf(room, P(ch.to)) + " " + k + " lá"); }
     endRound(room, winner, deltas, rows);
   }
 
@@ -490,6 +502,7 @@ function attach(io) {
     socket.on("claimHost", () => { if (!room || room.host === pid) return; if (room.admins.has(pid)) { room.host = pid; broadcast(room); return; } if (!room.seats.includes(pid)) return; if (online(room).has(room.host) && room.seats.includes(room.host)) return; if ([...room.admins].some((p) => online(room).has(p))) return; room.host = pid; log(room, nameOf(room, pid) + " nhận làm chủ phòng."); broadcast(room); });
     socket.on("kick", (i) => { if (!isHost() || room.phase === "playing" || !room.seats[i]) return; room.seats[i] = null; broadcast(room); });
     socket.on("stake", (v) => { if (!isHost() || room.phase === "playing") return; const n = Math.round(Number(v)); if (n >= 0 && n <= 1e9) { room.stake = n; broadcast(room); } });
+    socket.on("samRules", (r = {}) => { if (!isHost() || room.phase === "playing") return; room.samRules = { doiThong: !!r.doiThong }; broadcast(room); });
     socket.on("bcRules", (r = {}) => { if (!isHost() || room.phase === "playing") return; room.bcRules = { style: r.style === "nam" ? "nam" : "bac", pay: r.pay === "532" ? "532" : "all" }; broadcast(room); });
     socket.on("start", () => { if (!isHost() || room.phase === "playing") return; start(room); });
     socket.on("lobby", () => { if (!isHost()) return; if (room.phase === "playing") { clearTimeout(room.timer); log(room, "Chủ phòng huỷ ván " + room.roundNo + ", không tính tiền."); if (room.game === "bacay" && room.st?.paid) { const back = {}; for (const p in room.st.paid) back[p] = -room.st.paid[p]; applyDeltas(room, back); } } room.phase = "lobby"; room.st = null; room.result = null; room.deadline = 0; broadcast(room); });
