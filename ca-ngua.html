@@ -347,7 +347,7 @@ function renderLobby(){
   var filled=S.seats.filter(Boolean).length;
   $("startBtn").hidden=!host; $("startBtn").disabled=filled<2;
   $("startHint").textContent=host?(filled<2?"Cần ít nhất 2 ghế có người hoặc máy.":filled+" người chơi đã sẵn sàng."):"Chờ chủ phòng ("+hostName()+") bắt đầu.";
-  if(!host&&me>=0&&!S.hostLocked&&(!S.hostOnline||!S.hostSeated)){var cb=el("button","btn sm","Nhận chủ phòng"); cb.style.marginLeft="8px"; cb.onclick=function(){socket.emit("claimHost")}; $("startHint").appendChild(cb)}
+  if(!host&&(S.isAdmin||me>=0&&!S.hostLocked&&(!S.hostOnline||!S.hostSeated))){var cb=el("button","btn sm",S.isAdmin?"Lấy lại chủ phòng":"Nhận chủ phòng"); cb.style.marginLeft="8px"; cb.onclick=function(){socket.emit("claimHost")}; $("startHint").appendChild(cb)}
   paintAdmin();
   $("specs").textContent=S.spectators.length?"Đang xem: "+S.spectators.map(function(x){return x.name}).join(", "):"";
   renderRules();

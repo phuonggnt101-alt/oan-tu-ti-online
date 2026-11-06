@@ -186,11 +186,17 @@ function attach(io) {
     room.sockets.forEach((pid, sid) => { const s = nsp.sockets.get(sid); if (s) s.emit("state", publicState(room, pid)); });
   }
   function fixHost(room) {
-    const online = onlinePids(room), adm = [...room.admins].find((p) => online.has(p));
-    if (adm) { room.host = adm; return; } // tài khoản chủ phòng luôn làm chủ
+    const online = onlinePids(room), adms = [...room.admins].filter((p) => online.has(p));
+    const sat = (p) => room.seats.some((s) => s && !s.bot && s.pid === p);
+    if (adms.length) { // tài khoản chủ phòng luôn làm chủ; nhiều máy cùng đăng nhập thì ưu tiên máy đang ngồi chơi
+      const seated = adms.filter(sat);
+      if (adms.includes(room.host) && (sat(room.host) || !seated.length)) return;
+      room.host = (seated.length ? seated : adms).pop(); return;
+    }
     if (room.host && online.has(room.host)) return;
     room.host = [...online][0] || room.host;
   }
+
 
   // ---- turn engine ----
   const activeSeats = (room) => room.seats.map((s, i) => i).filter((i) => room.seats[i] && !room.ranking.includes(i));
@@ -304,7 +310,7 @@ function attach(io) {
       const name = String(msg.name || "").trim().slice(0, 24) || "Người chơi";
       if (room) { room.sockets.delete(socket.id); socket.leave(room.id); }
       room = getRoom(rid); room.emptySince = null;
-      if (admin.isAdmin(msg.token)) room.admins.add(pid); else room.admins.delete(pid);
+      if (admin.isAdmin(msg.token)) { room.admins.delete(pid); room.admins.add(pid); } else room.admins.delete(pid);
       room.people.set(pid, { name });
       room.sockets.set(socket.id, pid);
       socket.join(rid);
@@ -319,7 +325,9 @@ function attach(io) {
     });
     socket.on("adminLogout", () => { if (!room) return; room.admins.delete(pid); fixHost(room); broadcast(room); });
     socket.on("claimHost", () => {
-      if (!room || room.host === pid || mySeat() < 0) return;
+      if (!room || room.host === pid) return;
+      if (room.admins.has(pid)) { room.host = pid; broadcast(room); return; }
+      if (mySeat() < 0) return;
       const on = onlinePids(room);
       if ([...room.admins].some((p) => on.has(p))) return;
       if (on.has(room.host) && room.seats.some((s) => s && s.pid === room.host)) return;
@@ -328,9 +336,9 @@ function attach(io) {
     socket.on("sit", (i) => {
       if (!room || room.phase !== "lobby" || ![0, 1, 2, 3].includes(i) || room.seats[i]) return;
       const cur = mySeat(); if (cur >= 0) room.seats[cur] = null;
-      room.seats[i] = { pid }; broadcast(room);
+      room.seats[i] = { pid }; fixHost(room); broadcast(room);
     });
-    socket.on("stand", () => { if (!room || room.phase !== "lobby") return; const cur = mySeat(); if (cur >= 0) { room.seats[cur] = null; broadcast(room); } });
+    socket.on("stand", () => { if (!room || room.phase !== "lobby") return; const cur = mySeat(); if (cur >= 0) { room.seats[cur] = null; fixHost(room); broadcast(room); } });
     socket.on("addBot", (i) => {
       if (!isHost() || ![0, 1, 2, 3].includes(i)) return;
       const s = room.seats[i];

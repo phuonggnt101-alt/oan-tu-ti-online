@@ -438,7 +438,8 @@ function renderLobby(){
   var inp=$("stakeIn"); if(document.activeElement!==inp) inp.value=S_.stake; inp.disabled=!host;
   $("stakeNote").textContent=host?"":"Chủ phòng ("+S_.hostName+") đặt mức tiền.";
   var hl=$("hostLine"); hl.textContent=""; hl.appendChild(el("span",null,"👑 Chủ phòng: "+(host?"bạn":S_.hostName)+(S_.hostOnline?"":" (đang vắng)")));
-  if(S_.isAdmin) hl.appendChild(el("span","muted","Bạn đăng nhập tài khoản chủ phòng nên luôn giữ quyền chủ."));
+  if(S_.isAdmin&&!host){var ca=el("button","btn sm","Lấy lại chủ phòng"); ca.onclick=function(){socket.emit("claimHost")}; hl.appendChild(ca); hl.appendChild(el("span","muted","Tài khoản chủ phòng đang mở ở máy/tab khác."))}
+  else if(S_.isAdmin) hl.appendChild(el("span","muted","Bạn đăng nhập tài khoản chủ phòng nên luôn giữ quyền chủ."));
   else if(S_.hostLocked) hl.appendChild(el("span","muted","Chủ phòng đang dùng tài khoản chủ phòng."));
   else if(host) hl.appendChild(el("span","muted","Bấm “Nhường 👑” ở ghế người khác để chuyển quyền."));
   else if(mine>=0&&(!S_.hostOnline||!S_.hostSeated)){var cl=el("button","btn sm","Nhận chủ phòng"); cl.onclick=function(){socket.emit("claimHost")}; hl.appendChild(cl)}

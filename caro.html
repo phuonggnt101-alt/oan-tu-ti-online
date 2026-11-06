@@ -277,7 +277,7 @@ function renderLobby(){
   var full=S.seats[0]&&S.seats[1];
   $("startBtn").hidden=!host; $("swapBtn").hidden=!host; $("startBtn").disabled=!full;
   $("startHint").textContent=host?(full?"Sẵn sàng!":"Cần đủ 2 người (hoặc thêm máy)."):"Chờ chủ phòng ("+hostName()+") bắt đầu.";
-  if(!host&&me>=0&&!S.hostLocked&&(!S.hostOnline||!S.hostSeated)){var cb=el("button","btn sm","Nhận chủ phòng"); cb.style.marginLeft="8px"; cb.onclick=function(){socket.emit("claimHost")}; $("startHint").appendChild(cb)}
+  if(!host&&(S.isAdmin||me>=0&&!S.hostLocked&&(!S.hostOnline||!S.hostSeated))){var cb=el("button","btn sm",S.isAdmin?"Lấy lại chủ phòng":"Nhận chủ phòng"); cb.style.marginLeft="8px"; cb.onclick=function(){socket.emit("claimHost")}; $("startHint").appendChild(cb)}
   $("specs").textContent=S.spectators.length?"Đang xem: "+S.spectators.map(function(x){return x.name}).join(", "):"";
   renderRules();
 }

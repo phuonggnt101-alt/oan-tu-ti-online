@@ -123,8 +123,12 @@ function attach(io) {
   const nameOf = (room, pid) => room.people.get(pid)?.name || "Người chơi";
   function log(room, text) { room.log.push(text); if (room.log.length > 40) room.log.shift(); }
   function fixHost(room) {
-    const on = online(room), adm = [...room.admins].find((p) => on.has(p));
-    if (adm) { room.host = adm; return; } // tài khoản chủ phòng luôn làm chủ
+    const on = online(room), adms = [...room.admins].filter((p) => on.has(p));
+    if (adms.length) { // tài khoản chủ phòng luôn làm chủ; nhiều máy cùng đăng nhập thì ưu tiên máy đang ngồi chơi
+      const seated = adms.filter((p) => room.seats.includes(p));
+      if (adms.includes(room.host) && (room.seats.includes(room.host) || !seated.length)) return;
+      room.host = (seated.length ? seated : adms).pop(); return;
+    }
     if (!room.host || !on.has(room.host)) room.host = [...on][0] || room.host;
   }
   function schedule(room, ms, fn) { clearTimeout(room.timer); room.deadline = ms ? Date.now() + ms : 0; if (ms) room.timer = setTimeout(fn, ms); }
@@ -448,20 +452,20 @@ function attach(io) {
       pid = String(m.pid || "").replace(/[^a-zA-Z0-9]/g, "").slice(0, 32) || socket.id;
       if (room) { room.sockets.delete(socket.id); }
       room = getRoom(game, rid); room.emptySince = null;
-      if (admin.isAdmin(m.token)) room.admins.add(pid); else room.admins.delete(pid);
+      if (admin.isAdmin(m.token)) { room.admins.delete(pid); room.admins.add(pid); } else room.admins.delete(pid);
       room.people.set(pid, { name: String(m.name || "").trim().slice(0, 24) || "Người chơi" });
       room.sockets.set(socket.id, pid);
       fixHost(room); broadcast(room);
     });
     socket.on("rename", (n) => { if (!room) return; room.people.set(pid, { name: String(n || "").trim().slice(0, 24) || "Người chơi" }); broadcast(room); });
-    socket.on("sit", (i) => { if (!room || room.phase === "playing" || !Number.isInteger(i) || i < 0 || i >= room.seats.length || room.seats[i]) return; const c = mySeat(); if (c >= 0) room.seats[c] = null; room.seats[i] = pid; broadcast(room); });
+    socket.on("sit", (i) => { if (!room || room.phase === "playing" || !Number.isInteger(i) || i < 0 || i >= room.seats.length || room.seats[i]) return; const c = mySeat(); if (c >= 0) room.seats[c] = null; room.seats[i] = pid; fixHost(room); broadcast(room); });
     socket.on("queue", (on) => {
       if (!room || room.phase === "lobby" || mySeat() >= 0) return;
       room.queue = room.queue.filter((p) => p !== pid);
       if (on) { room.queue.push(pid); if (room.phase === "result") seatQueue(room); }
       broadcast(room);
     });
-    socket.on("stand", () => { if (!room || room.phase === "playing") return; const c = mySeat(); if (c >= 0) { room.seats[c] = null; broadcast(room); } });
+    socket.on("stand", () => { if (!room || room.phase === "playing") return; const c = mySeat(); if (c >= 0) { room.seats[c] = null; fixHost(room); broadcast(room); } });
     socket.on("adminLogin", (m = {}) => {
       const r = admin.login(socket.handshake.address + "|" + socket.id, String(m.user || ""), String(m.pass || ""));
       socket.emit("adminResult", r);
@@ -469,7 +473,7 @@ function attach(io) {
     });
     socket.on("adminLogout", () => { if (!room) return; room.admins.delete(pid); fixHost(room); broadcast(room); });
     socket.on("giveHost", (p) => { if (!isHost() || p === pid || !online(room).has(p) || room.admins.has(pid)) return; room.host = p; log(room, nameOf(room, pid) + " nhường chủ phòng cho " + nameOf(room, p) + "."); broadcast(room); });
-    socket.on("claimHost", () => { if (!room || room.host === pid || !room.seats.includes(pid)) return; if (online(room).has(room.host) && room.seats.includes(room.host)) return; if ([...room.admins].some((p) => online(room).has(p))) return; room.host = pid; log(room, nameOf(room, pid) + " nhận làm chủ phòng."); broadcast(room); });
+    socket.on("claimHost", () => { if (!room || room.host === pid) return; if (room.admins.has(pid)) { room.host = pid; broadcast(room); return; } if (!room.seats.includes(pid)) return; if (online(room).has(room.host) && room.seats.includes(room.host)) return; if ([...room.admins].some((p) => online(room).has(p))) return; room.host = pid; log(room, nameOf(room, pid) + " nhận làm chủ phòng."); broadcast(room); });
     socket.on("kick", (i) => { if (!isHost() || room.phase === "playing" || !room.seats[i]) return; room.seats[i] = null; broadcast(room); });
     socket.on("stake", (v) => { if (!isHost() || room.phase === "playing") return; const n = Math.round(Number(v)); if (n >= 0 && n <= 1e9) { room.stake = n; broadcast(room); } });
     socket.on("bcRules", (r = {}) => { if (!isHost() || room.phase === "playing") return; room.bcRules = { style: r.style === "nam" ? "nam" : "bac", pay: r.pay === "532" ? "532" : "all" }; broadcast(room); });
