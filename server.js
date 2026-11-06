@@ -18,6 +18,7 @@ const CANGUA = fs.readFileSync(path.join(__dirname, "ca-ngua.html"));
 const BAI = fs.readFileSync(path.join(__dirname, "bai.html"));
 const CARO = fs.readFileSync(path.join(__dirname, "caro.html"));
 const SFXJS = fs.readFileSync(path.join(__dirname, "sfx.js"));
+const CHATJS = fs.readFileSync(path.join(__dirname, "chat.js"));
 const server = http.createServer((req, res) => {
   const p = (req.url || "/").split("?")[0];
   if (p === "/" || p === "/index.html") {
@@ -35,6 +36,10 @@ const server = http.createServer((req, res) => {
   if (p === "/caro" || p === "/caro/") {
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
     return res.end(CARO);
+  }
+  if (p === "/chat.js") {
+    res.writeHead(200, { "Content-Type": "text/javascript; charset=utf-8" });
+    return res.end(CHATJS);
   }
   if (p === "/sfx.js") {
     res.writeHead(200, { "Content-Type": "text/javascript; charset=utf-8" });

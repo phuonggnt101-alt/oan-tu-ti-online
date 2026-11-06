@@ -304,6 +304,7 @@ function attach(io) {
     const isHost = () => room && room.host === pid;
     const mySeat = () => (room ? room.seats.findIndex((s) => s && !s.bot && s.pid === pid) : -1);
 
+    require("./chatsrv").attachChat(nsp, socket, () => room && { room, pid, name: room.people.get(pid)?.name || "Người chơi" });
     socket.on("join", (msg = {}) => {
       const rid = String(msg.room || "chung").toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 24) || "chung";
       pid = String(msg.pid || "").replace(/[^a-zA-Z0-9]/g, "").slice(0, 32) || socket.id;

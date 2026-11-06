@@ -188,6 +188,7 @@ h2{font-family:var(--f-display);font-weight:800;font-size:22px;margin:0;line-hei
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="/sfx.js"></script>
+<script src="/chat.js"></script>
 <script>
 (function(){
 var SYM=["X","O"], CLS=["x","o"], TV=["var(--tx)","var(--to)"];
@@ -198,7 +199,7 @@ var roomId=(params.get("phong")||"chung").toLowerCase().replace(/[^a-z0-9-]/g,""
 var pid=store.get("ott_pid"); if(!pid){pid=Math.random().toString(36).slice(2)+Date.now().toString(36); store.set("ott_pid",pid)}
 var myName=store.get("ott_name")||"";
 var S=null, offset=0, connected=false, builtSize=0, cells=[];
-var socket=io("/caro");
+var socket=io("/caro"); if(window.GameChat) GameChat(socket,pid);
 function join(){socket.emit("join",{room:roomId,pid:pid,name:myName,token:store.get("ott_admin")||""})}
 socket.on("connect",function(){connected=true; if(myName) join(); $("roomBtn").classList.remove("off")});
 socket.on("disconnect",function(){connected=false; $("roomBtn").classList.add("off"); $("hint").textContent="Mất kết nối, đang thử lại…"});

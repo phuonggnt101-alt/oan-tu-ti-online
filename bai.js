@@ -472,6 +472,7 @@ function attach(io) {
     const mySeat = () => (room ? room.seats.indexOf(pid) : -1);
     const reply = (err) => { if (err) socket.emit("oops", err); };
 
+    require("./chatsrv").attachChat(nsp, socket, () => room && { room, pid, name: nameOf(room, pid) });
     socket.on("join", (m = {}) => {
       const game = GAMES[m.game] ? m.game : "sam";
       const rid = String(m.room || "chung").toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 24) || "chung";

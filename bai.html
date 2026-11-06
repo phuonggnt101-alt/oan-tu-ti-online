@@ -274,6 +274,7 @@ body.cute .hand .c.sel{box-shadow:0 0 0 3px #FF5C8A,0 2px 0 #F7A8C8}
 </div>
 <div class="toast" id="toast" hidden></div>
 
+<script src="/chat.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 <script>
 (function(){
@@ -410,7 +411,7 @@ $("adminForm").addEventListener("submit",function(e){e.preventDefault(); if(!soc
   socket.emit("adminLogin",{user:$("adminUser").value.trim(),pass:$("adminPass").value})});
 if(GAME){
   if(!myName) askName();
-  socket=io("/bai");
+  socket=io("/bai"); if(window.GameChat) GameChat(socket,pid);
   socket.on("connect",function(){connected=true; if(myName) join(); $("roomBtn").classList.remove("off")});
   socket.on("disconnect",function(){connected=false; $("roomBtn").classList.add("off")});
   socket.on("state",function(st){var prev=S_; S_=st; offset=st.now-Date.now(); try{sfx(prev,st)}catch(e){}
